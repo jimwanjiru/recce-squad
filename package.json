@@ -1,11 +1,20 @@
 {
   "name": "recce-squad",
   "version": "1.0.0",
-  "description": "RECCE personnel system: proposed architecture and offline workbook analysis",
+  "description": "RECCE personnel management backend foundation",
   "scripts": {
-    "test": "node tools/design.test.cjs",
+    "test": "node tools/design.test.cjs && tsx backend/tests/unit.test.ts",
     "schema:validate": "node tools/validate-schema.cjs",
-    "workbook:analyze": "node tools/analyze-workbook.cjs"
+    "workbook:analyze": "node tools/analyze-workbook.cjs",
+    "test:integration": "tsx backend/tests/integration.test.ts",
+    "typecheck": "tsc --noEmit -p backend/tsconfig.json",
+    "build": "tsc -p backend/tsconfig.json",
+    "dev": "tsx backend/src/server.ts",
+    "start": "node backend/dist/src/server.js",
+    "db:generate": "bash tools/generate-client.sh",
+    "db:migrate": "tsx tools/migrate.ts",
+    "db:seed": "tsx backend/prisma/seed.ts",
+    "db:migrate:test": "tsx tools/migrate.ts --test"
   },
   "repository": {
     "type": "git",
@@ -20,12 +29,32 @@
   },
   "homepage": "https://github.com/jimwanjiru/recce-squad#readme",
   "devDependencies": {
-    "@prisma/internals": "^6.19.0",
+    "@prisma/internals": "6.19.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6",
+    "@types/supertest": "^7.2.1",
     "exceljs": "^4.4.0",
-    "prisma": "^6.19.0"
+    "prettier": "^3.9.10",
+    "prisma": "6.19.0",
+    "supertest": "^7.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   },
   "private": true,
   "engines": {
     "node": ">=24 <25"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "6.19.0",
+    "@prisma/client": "6.19.0",
+    "argon2": "^0.45.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.2",
+    "helmet": "^8.3.0",
+    "mariadb": "^3.5.4",
+    "zod": "^4.6.7"
   }
 }

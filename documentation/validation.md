@@ -1,13 +1,18 @@
 # Validation evidence
 
-Validated in the onboarding instance on 29 October 2026:
+Validated in the published environment's subsequent development instance on 29 October 2026. This is current-instance evidence; no new environment publication or production deployment was performed.
 
-- `npm ci --ignore-scripts`: passed; lockfile-based installation, no dependency lifecycle scripts.
-- `npm run schema:validate`: passed using Prisma 6.19 WASM DMMF validation, 35 models.
-- `npm test`: two fictional-data tests pass: workbook structural counting/privacy and schema key/relation integrity.
-- Actual workbook inspected locally with ExcelJS across all four sheets. No records imported.
-- `git check-ignore reference/RECCE DETAILED.xlsx`: confirms workbook exclusion.
+- Prisma 6.19 offline WASM/DMMF schema validation passes for all **36 models** and their relationships.
+- JavaScript-engine Prisma client generation succeeds without native engine downloads.
+- Three committed MySQL migrations apply successfully against isolated MySQL 8.4 databases. Re-running migrations reports them current and preserves checksums.
+- Fictional development seeding is repeatable, preserves existing credentials and does not activate personnel policies.
+- **24 automated tests pass:** 2 workbook/schema design checks, 5 policy/date/field-permission unit checks, and 17 MySQL/HTTP integration checks. No tests are skipped or disabled.
+- Integration checks cover authentication, origin/CSRF rejection, Secure/HTTP-only cookie flags, session hashing/expiry/revocation, password changes, RBAC, field restrictions, redacted audit events, duplicate force numbers, foreign keys, temporal constraints, concurrent overlapping primary assignments, unsafe isolation rejection, import staging, nullable movement references and inactive policies.
+- Metadata verification compares every model scalar column/nullability and foreign key with the migrated MySQL schema.
+- `npm run typecheck` and `npm run build` pass.
+- Built-server HTTP smoke passes: live database health, fictional login, authorized listing and logout.
+- The source workbook remains ignored and unchanged. No real officers have been imported; test fixtures are fictional.
 
-Native Prisma CLI engine validation could not download its engine checksum because binaries.prisma.sh returned HTTP 403 under the current network policy. Verification was not disabled. The matching offline Prisma WASM validator passed instead. Enable that destination in environment settings before native Prisma migration/client commands are needed.
+Native Prisma engine downloads return HTTP 403 for binaries.prisma.sh under the current network policy. Checksum and TLS verification were never disabled. The tested alternative uses Prisma's pinned WASM validator, JavaScript client engine, MySQL driver adapter and a checksum-aware SQL migration runner with the standard Prisma migration ledger. Native CLI migration deployment has not been validated in this environment.
 
-No application, MySQL integration, migration, authentication, API, browser, report or production-security tests have run: those modules await design approval. The two tests validate the Phase 1 deliverables only. ExcelJS has deprecated transitive dependencies; reassess dependency advisories before implementing production uploads.
+The React frontend, full officer CRUD/history UI, movement application worker, reports, document uploads and workbook import/export modules are later phases and are not claimed as complete. Sensitive related-data APIs are not exposed by this foundation. Production policy activation, real-data migration, deployment security review and production backup/restore validation remain outstanding.

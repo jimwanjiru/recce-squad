@@ -1,436 +1,512 @@
 generator client {
- provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "client"
 }
+
 datasource db {
- provider = "mysql"
- url = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model Officer {
-  id String @id @default(cuid())
-  forceNumber String @unique @db.VarChar(64)
-  payrollNumber String? @db.VarChar(64)
-  fullName String @db.VarChar(255)
-  nationalId String? @db.VarChar(64)
-  dateOfBirth DateTime? @db.Date
-  gender String? @db.VarChar(32)
-  countyId String?
-  ethnicityId String?
-  dateEnlisted DateTime? @db.Date
-  phone String? @db.VarChar(255)
-  recordStatus String @default("ACTIVE")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  version Int @default(0)
-  county County? @relation("Officer_countyId", fields: [countyId], references: [id], onDelete: Restrict)
-  ethnicity Ethnicity? @relation("Officer_ethnicityId", fields: [ethnicityId], references: [id], onDelete: Restrict)
-  serviceProfile OfficerServiceProfile? @relation("OfficerServiceProfile_officerId")
-  rankHistories OfficerRankHistory[] @relation("OfficerRankHistory_officerId")
-  financialDetail OfficerFinancialDetail? @relation("OfficerFinancialDetail_officerId")
-  assignments OfficerAssignment[] @relation("OfficerAssignment_officerId")
-  movements PersonnelMovement[] @relation("PersonnelMovement_officerId")
-  statusHistories OfficerStatusHistory[] @relation("OfficerStatusHistory_officerId")
-  education OfficerEducation[] @relation("OfficerEducation_officerId")
-  courses OfficerCourse[] @relation("OfficerCourse_officerId")
-  awards OfficerAward[] @relation("OfficerAward_officerId")
+  id                  String                      @id @default(cuid())
+  forceNumber         String                      @unique @db.VarChar(64)
+  payrollNumber       String?                     @db.VarChar(64)
+  fullName            String                      @db.VarChar(255)
+  nationalId          String?                     @db.VarChar(64)
+  dateOfBirth         DateTime?                   @db.Date
+  gender              String?                     @db.VarChar(32)
+  countyId            String?
+  ethnicityId         String?
+  dateEnlisted        DateTime?                   @db.Date
+  phone               String?                     @db.VarChar(255)
+  recordStatus        String                      @default("ACTIVE")
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  deletedAt           DateTime?
+  version             Int                         @default(0)
+  county              County?                     @relation("Officer_countyId", fields: [countyId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  ethnicity           Ethnicity?                  @relation("Officer_ethnicityId", fields: [ethnicityId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  serviceProfile      OfficerServiceProfile?      @relation("OfficerServiceProfile_officerId")
+  rankHistories       OfficerRankHistory[]        @relation("OfficerRankHistory_officerId")
+  financialDetail     OfficerFinancialDetail?     @relation("OfficerFinancialDetail_officerId")
+  assignments         OfficerAssignment[]         @relation("OfficerAssignment_officerId")
+  movements           PersonnelMovement[]         @relation("PersonnelMovement_officerId")
+  statusHistories     OfficerStatusHistory[]      @relation("OfficerStatusHistory_officerId")
+  education           OfficerEducation[]          @relation("OfficerEducation_officerId")
+  courses             OfficerCourse[]             @relation("OfficerCourse_officerId")
+  awards              OfficerAward[]              @relation("OfficerAward_officerId")
   disciplinaryRecords OfficerDisciplinaryRecord[] @relation("OfficerDisciplinaryRecord_officerId")
-  examinations OfficerExamination[] @relation("OfficerExamination_officerId")
-  importRows ImportRow[] @relation("ImportRow_officerId")
+  examinations        OfficerExamination[]        @relation("OfficerExamination_officerId")
+  importRows          ImportRow[]                 @relation("ImportRow_officerId")
 }
 
 model OfficerServiceProfile {
-  id String @id @default(cuid())
-  officerId String @unique
-  dateJoinedUnit DateTime? @db.Date
+  id                     String    @id @default(cuid())
+  officerId              String    @unique
+  dateJoinedUnit         DateTime? @db.Date
   retirementDateOverride DateTime? @db.Date
-  serviceRemarks String? @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  officer Officer @relation("OfficerServiceProfile_officerId", fields: [officerId], references: [id], onDelete: Restrict)
+  serviceRemarks         String?   @db.Text
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  officer                Officer   @relation("OfficerServiceProfile_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model Rank {
-  id String @id @default(cuid())
-  code String @unique
-  name String
-  hierarchyLevel Int
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  aliases RankAlias[] @relation("RankAlias_rankId")
-  histories OfficerRankHistory[] @relation("OfficerRankHistory_rankId")
-  establishments RankEstablishment[] @relation("RankEstablishment_rankId")
-  movementsFrom PersonnelMovement[] @relation("PersonnelMovement_fromRankId")
-  movementsTo PersonnelMovement[] @relation("PersonnelMovement_toRankId")
-  retirementRules RetirementRule[] @relation("RetirementRule_rankId")
+  id              String               @id @default(cuid())
+  code            String               @unique
+  name            String
+  hierarchyLevel  Int
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  aliases         RankAlias[]          @relation("RankAlias_rankId")
+  histories       OfficerRankHistory[] @relation("OfficerRankHistory_rankId")
+  establishments  RankEstablishment[]  @relation("RankEstablishment_rankId")
+  movementsFrom   PersonnelMovement[]  @relation("PersonnelMovement_fromRankId")
+  movementsTo     PersonnelMovement[]  @relation("PersonnelMovement_toRankId")
+  retirementRules RetirementRule[]     @relation("RetirementRule_rankId")
 }
 
 model RankAlias {
-  id String @id @default(cuid())
-  alias String @unique
+  id     String @id @default(cuid())
+  alias  String @unique
   rankId String
-  rank Rank @relation("RankAlias_rankId", fields: [rankId], references: [id], onDelete: Restrict)
+  rank   Rank   @relation("RankAlias_rankId", fields: [rankId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model OfficerRankHistory {
-  id String @id @default(cuid())
-  officerId String
-  rankId String
-  effectiveFrom DateTime @db.Date
-  effectiveTo DateTime? @db.Date
-  promotionDate DateTime? @db.Date
-  referenceNumber String?
-  remarks String? @db.Text
-  officer Officer @relation("OfficerRankHistory_officerId", fields: [officerId], references: [id], onDelete: Restrict)
-  rank Rank @relation("OfficerRankHistory_rankId", fields: [rankId], references: [id], onDelete: Restrict)
+  id                    String    @id @default(cuid())
+  officerId             String
+  rankId                String
+  effectiveFrom         DateTime  @db.Date
+  effectiveTo           DateTime? @db.Date
+  promotionDate         DateTime? @db.Date
+  referenceNumber       String?
+  originalRankSpelling  String?
+  specialistDesignation String?
+  remarks               String?   @db.Text
+  officer               Officer   @relation("OfficerRankHistory_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  rank                  Rank      @relation("OfficerRankHistory_rankId", fields: [rankId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  datesVerifiedAt       DateTime
+  datesVerifiedById     String
+  datesVerifiedBy       User      @relation("OfficerRankHistory_dateVerifier", fields: [datesVerifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@index([officerId, effectiveFrom, effectiveTo])
 }
 
 model County {
-  id String @id @default(cuid())
-  name String @unique
+  id       String    @id @default(cuid())
+  name     String    @unique
   officers Officer[] @relation("Officer_countyId")
 }
 
 model Ethnicity {
-  id String @id @default(cuid())
-  name String @unique
-  isActive Boolean @default(true)
+  id       String    @id @default(cuid())
+  name     String    @unique
+  isActive Boolean   @default(true)
   officers Officer[] @relation("Officer_ethnicityId")
 }
 
 model Bank {
-  id String @id @default(cuid())
-  name String @unique
+  id               String                   @id @default(cuid())
+  name             String                   @unique
   financialDetails OfficerFinancialDetail[] @relation("OfficerFinancialDetail_bankId")
 }
 
 model OfficerFinancialDetail {
-  id String @id @default(cuid())
-  officerId String @unique
-  bankId String?
-  encryptedAccountNumber Bytes @db.Blob
-  keyVersion String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  officer Officer @relation("OfficerFinancialDetail_officerId", fields: [officerId], references: [id], onDelete: Restrict)
-  bank Bank? @relation("OfficerFinancialDetail_bankId", fields: [bankId], references: [id], onDelete: Restrict)
+  id                     String   @id @default(cuid())
+  officerId              String   @unique
+  bankId                 String?
+  encryptedAccountNumber Bytes    @db.Blob
+  keyVersion             String
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  officer                Officer  @relation("OfficerFinancialDetail_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  bank                   Bank?    @relation("OfficerFinancialDetail_bankId", fields: [bankId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model Unit {
-  id String @id @default(cuid())
-  name String
-  code String @unique
-  parentUnitId String?
-  isActive Boolean @default(true)
-  parentUnit Unit? @relation("Unit_parentUnitId", fields: [parentUnitId], references: [id], onDelete: Restrict)
-  children Unit[] @relation("Unit_parentUnitId")
-  subUnits SubUnit[] @relation("SubUnit_unitId")
-  assignments OfficerAssignment[] @relation("OfficerAssignment_unitId")
+  id             String              @id @default(cuid())
+  name           String
+  code           String              @unique
+  parentUnitId   String?
+  isActive       Boolean             @default(true)
+  parentUnit     Unit?               @relation("Unit_parentUnitId", fields: [parentUnitId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children       Unit[]              @relation("Unit_parentUnitId")
+  subUnits       SubUnit[]           @relation("SubUnit_unitId")
+  assignments    OfficerAssignment[] @relation("OfficerAssignment_unitId")
   establishments RankEstablishment[] @relation("RankEstablishment_unitId")
 }
 
 model SubUnit {
-  id String @id @default(cuid())
-  unitId String
-  code String
-  name String
-  isActive Boolean @default(true)
-  unit Unit @relation("SubUnit_unitId", fields: [unitId], references: [id], onDelete: Restrict)
-  assignments OfficerAssignment[] @relation("OfficerAssignment_subUnitId")
+  id             String              @id @default(cuid())
+  unitId         String
+  code           String
+  name           String
+  isActive       Boolean             @default(true)
+  unit           Unit                @relation("SubUnit_unitId", fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  assignments    OfficerAssignment[] @relation("OfficerAssignment_subUnitId")
   establishments RankEstablishment[] @relation("RankEstablishment_subUnitId")
+
   @@unique([unitId, code])
 }
 
 model OfficerAssignment {
-  id String @id @default(cuid())
-  officerId String
-  unitId String
-  subUnitId String?
-  dutyTitle String?
-  disposition String?
-  effectiveFrom DateTime @db.Date
-  effectiveTo DateTime? @db.Date
-  isPrimary Boolean @default(true)
-  remarks String? @db.Text
-  officer Officer @relation("OfficerAssignment_officerId", fields: [officerId], references: [id], onDelete: Restrict)
-  unit Unit @relation("OfficerAssignment_unitId", fields: [unitId], references: [id], onDelete: Restrict)
-  subUnit SubUnit? @relation("OfficerAssignment_subUnitId", fields: [subUnitId], references: [id], onDelete: Restrict)
-  deployments DeploymentRecord[] @relation("DeploymentRecord_assignmentId")
-  movementsFrom PersonnelMovement[] @relation("PersonnelMovement_fromAssignmentId")
-  movementsTo PersonnelMovement[] @relation("PersonnelMovement_toAssignmentId")
+  id                String              @id @default(cuid())
+  officerId         String
+  unitId            String
+  subUnitId         String?
+  dutyTitle         String?
+  disposition       String?
+  effectiveFrom     DateTime            @db.Date
+  effectiveTo       DateTime?           @db.Date
+  isPrimary         Boolean             @default(true)
+  remarks           String?             @db.Text
+  officer           Officer             @relation("OfficerAssignment_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  unit              Unit                @relation("OfficerAssignment_unitId", fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  subUnit           SubUnit?            @relation("OfficerAssignment_subUnitId", fields: [subUnitId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  deployments       DeploymentRecord[]  @relation("DeploymentRecord_assignmentId")
+  movementsFrom     PersonnelMovement[] @relation("PersonnelMovement_fromAssignmentId")
+  movementsTo       PersonnelMovement[] @relation("PersonnelMovement_toAssignmentId")
+  datesVerifiedAt   DateTime
+  datesVerifiedById String
+  datesVerifiedBy   User                @relation("OfficerAssignment_dateVerifier", fields: [datesVerifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@index([officerId, effectiveFrom, effectiveTo])
+  @@index([unitId, subUnitId, effectiveFrom, effectiveTo])
+  @@index([officerId, isPrimary, effectiveFrom, effectiveTo])
 }
 
 model DeploymentRecord {
-  id String @id @default(cuid())
-  assignmentId String
-  deploymentStatus String
-  locationLabel String?
-  effectiveFrom DateTime @db.Date
-  effectiveTo DateTime? @db.Date
-  remarks String? @db.Text
-  assignment OfficerAssignment @relation("DeploymentRecord_assignmentId", fields: [assignmentId], references: [id], onDelete: Restrict)
+  id                String            @id @default(cuid())
+  assignmentId      String
+  deploymentStatus  String
+  locationLabel     String?
+  effectiveFrom     DateTime          @db.Date
+  effectiveTo       DateTime?         @db.Date
+  remarks           String?           @db.Text
+  assignment        OfficerAssignment @relation("DeploymentRecord_assignmentId", fields: [assignmentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  datesVerifiedAt   DateTime
+  datesVerifiedById String
+  datesVerifiedBy   User              @relation("DeploymentRecord_dateVerifier", fields: [datesVerifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([assignmentId, effectiveFrom, effectiveTo])
 }
 
 model RankEstablishment {
-  id String @id @default(cuid())
-  unitId String
-  subUnitId String?
-  rankId String
+  id                 String    @id @default(cuid())
+  unitId             String
+  subUnitId          String?
+  rankId             String
   authorizedStrength Int
-  effectiveFrom DateTime @db.Date
-  effectiveTo DateTime? @db.Date
-  unit Unit @relation("RankEstablishment_unitId", fields: [unitId], references: [id], onDelete: Restrict)
-  subUnit SubUnit? @relation("RankEstablishment_subUnitId", fields: [subUnitId], references: [id], onDelete: Restrict)
-  rank Rank @relation("RankEstablishment_rankId", fields: [rankId], references: [id], onDelete: Restrict)
+  effectiveFrom      DateTime  @db.Date
+  effectiveTo        DateTime? @db.Date
+  unit               Unit      @relation("RankEstablishment_unitId", fields: [unitId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  subUnit            SubUnit?  @relation("RankEstablishment_subUnitId", fields: [subUnitId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  rank               Rank      @relation("RankEstablishment_rankId", fields: [rankId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  datesVerifiedAt    DateTime
+  datesVerifiedById  String
+  datesVerifiedBy    User      @relation("RankEstablishment_dateVerifier", fields: [datesVerifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@index([unitId, rankId, effectiveFrom])
 }
 
 model MovementType {
-  id String @id @default(cuid())
-  code String @unique
-  name String
-  isActive Boolean @default(true)
+  id        String              @id @default(cuid())
+  code      String              @unique
+  name      String
+  isActive  Boolean             @default(true)
   movements PersonnelMovement[] @relation("PersonnelMovement_movementTypeId")
 }
 
 model PersonnelMovement {
-  id String @id @default(cuid())
-  officerId String
-  movementTypeId String
-  effectiveDate DateTime @db.Date
-  fromAssignmentId String?
-  toAssignmentId String?
-  fromRankId String?
-  toRankId String?
-  referenceNumber String
-  reason String? @db.Text
-  remarks String? @db.Text
-  approvalStatus String @default("DRAFT")
-  recordedById String
-  approvedById String?
-  approvedAt DateTime?
-  appliedAt DateTime?
-  idempotencyKey String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  officer Officer @relation("PersonnelMovement_officerId", fields: [officerId], references: [id], onDelete: Restrict)
-  movementType MovementType @relation("PersonnelMovement_movementTypeId", fields: [movementTypeId], references: [id], onDelete: Restrict)
-  fromAssignment OfficerAssignment? @relation("PersonnelMovement_fromAssignmentId", fields: [fromAssignmentId], references: [id], onDelete: Restrict)
-  toAssignment OfficerAssignment? @relation("PersonnelMovement_toAssignmentId", fields: [toAssignmentId], references: [id], onDelete: Restrict)
-  fromRank Rank? @relation("PersonnelMovement_fromRankId", fields: [fromRankId], references: [id], onDelete: Restrict)
-  toRank Rank? @relation("PersonnelMovement_toRankId", fields: [toRankId], references: [id], onDelete: Restrict)
-  recordedBy User @relation("PersonnelMovement_recordedById", fields: [recordedById], references: [id], onDelete: Restrict)
-  approvedBy User? @relation("PersonnelMovement_approvedById", fields: [approvedById], references: [id], onDelete: Restrict)
-  statusHistories OfficerStatusHistory[] @relation("OfficerStatusHistory_movementId")
-  documents MovementDocument[] @relation("MovementDocument_movementId")
+  id                String                 @id @default(cuid())
+  officerId         String
+  movementTypeId    String
+  effectiveDate     DateTime               @db.Date
+  fromAssignmentId  String?
+  toAssignmentId    String?
+  fromRankId        String?
+  toRankId          String?
+  referenceNumber   String?
+  reason            String?                @db.Text
+  remarks           String?                @db.Text
+  approvalStatus    String                 @default("DRAFT")
+  recordedById      String
+  approvedById      String?
+  approvedAt        DateTime?
+  appliedAt         DateTime?
+  idempotencyKey    String                 @unique
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  officer           Officer                @relation("PersonnelMovement_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  movementType      MovementType           @relation("PersonnelMovement_movementTypeId", fields: [movementTypeId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  fromAssignment    OfficerAssignment?     @relation("PersonnelMovement_fromAssignmentId", fields: [fromAssignmentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  toAssignment      OfficerAssignment?     @relation("PersonnelMovement_toAssignmentId", fields: [toAssignmentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  fromRank          Rank?                  @relation("PersonnelMovement_fromRankId", fields: [fromRankId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  toRank            Rank?                  @relation("PersonnelMovement_toRankId", fields: [toRankId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  recordedBy        User                   @relation("PersonnelMovement_recordedById", fields: [recordedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  approvedBy        User?                  @relation("PersonnelMovement_approvedById", fields: [approvedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  statusHistories   OfficerStatusHistory[] @relation("OfficerStatusHistory_movementId")
+  documents         MovementDocument[]     @relation("MovementDocument_movementId")
+  datesVerifiedAt   DateTime
+  datesVerifiedById String
+  datesVerifiedBy   User                   @relation("PersonnelMovement_dateVerifier", fields: [datesVerifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@index([approvalStatus, effectiveDate, appliedAt])
 }
 
 model OfficerStatusHistory {
-  id String @id @default(cuid())
-  officerId String
-  status String
-  effectiveFrom DateTime @db.Date
-  effectiveTo DateTime? @db.Date
-  movementId String?
-  officer Officer @relation("OfficerStatusHistory_officerId", fields: [officerId], references: [id], onDelete: Restrict)
-  movement PersonnelMovement? @relation("OfficerStatusHistory_movementId", fields: [movementId], references: [id], onDelete: Restrict)
+  id                String             @id @default(cuid())
+  officerId         String
+  status            String
+  effectiveFrom     DateTime           @db.Date
+  effectiveTo       DateTime?          @db.Date
+  movementId        String?
+  officer           Officer            @relation("OfficerStatusHistory_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  movement          PersonnelMovement? @relation("OfficerStatusHistory_movementId", fields: [movementId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  datesVerifiedAt   DateTime
+  datesVerifiedById String
+  datesVerifiedBy   User               @relation("OfficerStatusHistory_dateVerifier", fields: [datesVerifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@index([officerId, effectiveFrom, effectiveTo])
 }
 
 model MovementDocument {
-  id String @id @default(cuid())
-  movementId String
-  storageKey String @unique
+  id               String            @id @default(cuid())
+  movementId       String
+  storageKey       String            @unique
   originalFilename String
-  contentType String
-  sizeBytes Int
-  sha256 String
-  scanStatus String @default("QUARANTINED")
-  documentType String
-  uploadedById String
-  uploadedAt DateTime @default(now())
-  movement PersonnelMovement @relation("MovementDocument_movementId", fields: [movementId], references: [id], onDelete: Restrict)
-  uploadedBy User @relation("MovementDocument_uploadedById", fields: [uploadedById], references: [id], onDelete: Restrict)
+  contentType      String
+  sizeBytes        Int
+  sha256           String
+  scanStatus       String            @default("QUARANTINED")
+  documentType     String
+  uploadedById     String
+  uploadedAt       DateTime          @default(now())
+  movement         PersonnelMovement @relation("MovementDocument_movementId", fields: [movementId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  uploadedBy       User              @relation("MovementDocument_uploadedById", fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model OfficerEducation {
-  id String @id @default(cuid())
-  officerId String
+  id             String    @id @default(cuid())
+  officerId      String
   educationLevel String?
-  qualification String?
-  kcseGrade String?
-  institution String?
+  qualification  String?
+  kcseGrade      String?
+  institution    String?
   completionDate DateTime? @db.Date
-  officer Officer @relation("OfficerEducation_officerId", fields: [officerId], references: [id], onDelete: Restrict)
+  officer        Officer   @relation("OfficerEducation_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model Course {
-  id String @id @default(cuid())
+  id         String          @id @default(cuid())
   courseName String
-  courseCode String? @unique
-  provider String?
-  officers OfficerCourse[] @relation("OfficerCourse_courseId")
+  courseCode String?         @unique
+  provider   String?
+  officers   OfficerCourse[] @relation("OfficerCourse_courseId")
 }
 
 model OfficerCourse {
-  id String @id @default(cuid())
-  officerId String
-  courseId String
-  startDate DateTime? @db.Date
+  id             String    @id @default(cuid())
+  officerId      String
+  courseId       String
+  startDate      DateTime? @db.Date
   completionDate DateTime? @db.Date
-  result String?
-  remarks String? @db.Text
-  officer Officer @relation("OfficerCourse_officerId", fields: [officerId], references: [id], onDelete: Restrict)
-  course Course @relation("OfficerCourse_courseId", fields: [courseId], references: [id], onDelete: Restrict)
+  result         String?
+  remarks        String?   @db.Text
+  officer        Officer   @relation("OfficerCourse_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  course         Course    @relation("OfficerCourse_courseId", fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model OfficerAward {
-  id String @id @default(cuid())
-  officerId String
-  awardName String @db.Text
-  awardDate DateTime? @db.Date
+  id              String    @id @default(cuid())
+  officerId       String
+  awardName       String    @db.Text
+  awardDate       DateTime? @db.Date
   referenceNumber String?
-  officer Officer @relation("OfficerAward_officerId", fields: [officerId], references: [id], onDelete: Restrict)
+  officer         Officer   @relation("OfficerAward_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model OfficerDisciplinaryRecord {
-  id String @id @default(cuid())
-  officerId String
-  recordType String
-  incidentDate DateTime? @db.Date
-  decisionDate DateTime? @db.Date
-  details String @db.Text
+  id              String    @id @default(cuid())
+  officerId       String
+  recordType      String
+  incidentDate    DateTime? @db.Date
+  decisionDate    DateTime? @db.Date
+  details         String    @db.Text
   referenceNumber String?
-  status String
-  officer Officer @relation("OfficerDisciplinaryRecord_officerId", fields: [officerId], references: [id], onDelete: Restrict)
+  status          String
+  officer         Officer   @relation("OfficerDisciplinaryRecord_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model OfficerExamination {
-  id String @id @default(cuid())
+  id        String    @id @default(cuid())
   officerId String
-  examName String
-  examDate DateTime? @db.Date
-  score String?
-  result String?
-  officer Officer @relation("OfficerExamination_officerId", fields: [officerId], references: [id], onDelete: Restrict)
+  examName  String
+  examDate  DateTime? @db.Date
+  score     String?
+  result    String?
+  officer   Officer   @relation("OfficerExamination_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 model User {
-  id String @id @default(cuid())
-  name String
-  email String @unique
-  passwordHash String
-  isActive Boolean @default(true)
-  lastLoginAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  recordedMovements PersonnelMovement[] @relation("PersonnelMovement_recordedById")
-  approvedMovements PersonnelMovement[] @relation("PersonnelMovement_approvedById")
-  documents MovementDocument[] @relation("MovementDocument_uploadedById")
-  roles UserRole[] @relation("UserRole_userId")
-  auditLogs AuditLog[] @relation("AuditLog_userId")
-  imports ImportBatch[] @relation("ImportBatch_uploadedById")
-  sessions UserSession[] @relation("UserSession_userId")
+  id                           String                  @id @default(cuid())
+  name                         String
+  email                        String                  @unique
+  passwordHash                 String
+  isActive                     Boolean                 @default(true)
+  lastLoginAt                  DateTime?
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime                @updatedAt
+  recordedMovements            PersonnelMovement[]     @relation("PersonnelMovement_recordedById")
+  approvedMovements            PersonnelMovement[]     @relation("PersonnelMovement_approvedById")
+  documents                    MovementDocument[]      @relation("MovementDocument_uploadedById")
+  roles                        UserRole[]              @relation("UserRole_userId")
+  auditLogs                    AuditLog[]              @relation("AuditLog_userId")
+  imports                      ImportBatch[]           @relation("ImportBatch_uploadedById")
+  sessions                     UserSession[]           @relation("UserSession_userId")
+  approvedRetirementRules      RetirementRule[]        @relation("RetirementRule_approver")
+  approvedStrengthRules        StrengthInclusionRule[] @relation("StrengthInclusionRule_approver")
+  verifiedOfficerAssignment    OfficerAssignment[]     @relation("OfficerAssignment_dateVerifier")
+  verifiedOfficerRankHistory   OfficerRankHistory[]    @relation("OfficerRankHistory_dateVerifier")
+  verifiedOfficerStatusHistory OfficerStatusHistory[]  @relation("OfficerStatusHistory_dateVerifier")
+  verifiedDeploymentRecord     DeploymentRecord[]      @relation("DeploymentRecord_dateVerifier")
+  verifiedPersonnelMovement    PersonnelMovement[]     @relation("PersonnelMovement_dateVerifier")
+  verifiedRankEstablishments   RankEstablishment[]     @relation("RankEstablishment_dateVerifier")
 }
 
 model Role {
-  id String @id @default(cuid())
-  name String @unique
-  users UserRole[] @relation("UserRole_roleId")
+  id          String           @id @default(cuid())
+  name        String           @unique
+  users       UserRole[]       @relation("UserRole_roleId")
   permissions RolePermission[] @relation("RolePermission_roleId")
 }
 
 model Permission {
-  id String @id @default(cuid())
-  code String @unique
+  id          String           @id @default(cuid())
+  code        String           @unique
   description String
-  roles RolePermission[] @relation("RolePermission_permissionId")
+  roles       RolePermission[] @relation("RolePermission_permissionId")
 }
 
 model UserRole {
   userId String
   roleId String
-  user User @relation("UserRole_userId", fields: [userId], references: [id], onDelete: Restrict)
-  role Role @relation("UserRole_roleId", fields: [roleId], references: [id], onDelete: Restrict)
+  user   User   @relation("UserRole_userId", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  role   Role   @relation("UserRole_roleId", fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@id([userId, roleId])
 }
 
 model RolePermission {
-  roleId String
+  roleId       String
   permissionId String
-  role Role @relation("RolePermission_roleId", fields: [roleId], references: [id], onDelete: Restrict)
-  permission Permission @relation("RolePermission_permissionId", fields: [permissionId], references: [id], onDelete: Restrict)
+  role         Role       @relation("RolePermission_roleId", fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  permission   Permission @relation("RolePermission_permissionId", fields: [permissionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@id([roleId, permissionId])
 }
 
 model AuditLog {
-  id String @id @default(cuid())
-  userId String?
-  action String
-  entityType String
-  entityId String
+  id            String   @id @default(cuid())
+  userId        String?
+  action        String
+  entityType    String
+  entityId      String
   changedFields Json
-  createdAt DateTime @default(now())
-  user User? @relation("AuditLog_userId", fields: [userId], references: [id], onDelete: Restrict)
+  createdAt     DateTime @default(now())
+  user          User?    @relation("AuditLog_userId", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@index([entityType, entityId, createdAt])
 }
 
 model RetirementRule {
-  id String @id @default(cuid())
-  rankId String
+  id            String    @id @default(cuid())
+  rankId        String?
   retirementAge Int
-  effectiveFrom DateTime @db.Date
-  effectiveTo DateTime? @db.Date
-  rank Rank @relation("RetirementRule_rankId", fields: [rankId], references: [id], onDelete: Restrict)
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+  rank          Rank?     @relation("RetirementRule_rankId", fields: [rankId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  isActive      Boolean   @default(false)
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    User?     @relation("RetirementRule_approver", fields: [approvedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([rankId, isActive, effectiveFrom, effectiveTo])
 }
 
 model ImportBatch {
-  id String @id @default(cuid())
-  filename String
-  fileSha256 String
+  id           String      @id @default(cuid())
+  filename     String
+  fileSha256   String
   uploadedById String
-  status String @default("PREVIEW")
-  totalRows Int @default(0)
-  importedRows Int @default(0)
-  rejectedRows Int @default(0)
-  createdAt DateTime @default(now())
-  uploadedBy User @relation("ImportBatch_uploadedById", fields: [uploadedById], references: [id], onDelete: Restrict)
-  rows ImportRow[] @relation("ImportRow_batchId")
+  status       String      @default("PREVIEW")
+  totalRows    Int         @default(0)
+  importedRows Int         @default(0)
+  rejectedRows Int         @default(0)
+  createdAt    DateTime    @default(now())
+  uploadedBy   User        @relation("ImportBatch_uploadedById", fields: [uploadedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  rows         ImportRow[] @relation("ImportRow_batchId")
+
   @@index([fileSha256])
 }
 
 model ImportRow {
-  id String @id @default(cuid())
-  batchId String
-  sheetName String
-  rowNumber Int
-  rawData Json
-  validationErrors Json
-  status String @default("PENDING")
-  officerId String?
-  batch ImportBatch @relation("ImportRow_batchId", fields: [batchId], references: [id], onDelete: Restrict)
-  officer Officer? @relation("ImportRow_officerId", fields: [officerId], references: [id], onDelete: Restrict)
+  id                    String      @id @default(cuid())
+  batchId               String
+  sheetName             String
+  rowNumber             Int
+  rawData               Json
+  unresolvedDates       Json
+  originalRankSpelling  String?
+  specialistDesignation String?
+  verificationStatus    String      @default("UNVERIFIED")
+  validationErrors      Json
+  status                String      @default("PENDING")
+  officerId             String?
+  batch                 ImportBatch @relation("ImportRow_batchId", fields: [batchId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  officer               Officer?    @relation("ImportRow_officerId", fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@unique([batchId, sheetName, rowNumber])
 }
 
 model SystemSetting {
-  id String @id @default(cuid())
-  settingKey String @unique
+  id           String @id @default(cuid())
+  settingKey   String @unique
   settingValue Json
 }
 
 model UserSession {
-  id String @id @default(cuid())
-  userId String
-  tokenHash String @unique
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
   csrfTokenHash String
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime @default(now())
-  user User @relation("UserSession_userId", fields: [userId], references: [id], onDelete: Restrict)
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  user          User      @relation("UserSession_userId", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
   @@index([expiresAt])
+  @@index([userId, revokedAt, expiresAt])
+}
+
+// No seed activates these rules. A wildcard deployment applies only when reviewed.
+model StrengthInclusionRule {
+  id                 String    @id @default(cuid())
+  status             String
+  deploymentStatus   String
+  includeNominal     Boolean
+  includeOperational Boolean
+  effectiveFrom      DateTime  @db.Date
+  effectiveTo        DateTime? @db.Date
+  isActive           Boolean   @default(false)
+  approvedAt         DateTime?
+  approvedById       String?
+  approvedBy         User?     @relation("StrengthInclusionRule_approver", fields: [approvedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([status, deploymentStatus, isActive, effectiveFrom, effectiveTo])
 }

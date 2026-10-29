@@ -1,16 +1,16 @@
 # RECCE Officers Personnel Management System
 
-Phase 1: workbook analysis and proposed database architecture for approval. **This repository does not yet contain a running personnel application.** The supplied specification requires approval before migrations, real-data imports or major modules.
+Phase 2 backend foundation for the conditionally approved architecture: Express/TypeScript, MySQL 8.4, Prisma, session authentication, backend RBAC and field-level officer projections. Frontend and full officer/movement/report/import workflows remain later phases.
 
-- [Workbook analysis and complete source mapping](documentation/workbook-analysis.md)
-- [Architecture, security, invariants and approval questions](documentation/architecture.md)
-- [Entity relationships](documentation/relationships.md)
+- [Updated schema and remaining decisions](documentation/schema-amendments.md)
 - [Complete Prisma schema](backend/prisma/schema.prisma)
+- [Relationships](documentation/relationships.md)
+- [Workbook mapping](documentation/workbook-analysis.md)
+- [Development setup and API](documentation/backend-development.md)
+- [Validation evidence](documentation/validation.md)
 
-## Local design checks
+No actual personnel data is committed or imported. Production retirement/strength policies remain inactive. Fictional seed data is explicitly opt-in and rejected in production.
 
-Requires Node.js 24 and npm 11. Run `npm ci`, then `npm test`. Run `npm run schema:validate` for the offline Prisma/WASM structure check. Native Prisma CLI validation additionally needs access to `binaries.prisma.sh`.
+Requires Node.js 24, npm 11, Python 3 and MySQL 8.4 (Docker is supported). Start with `npm ci --ignore-scripts`, `npm run db:generate`, then follow the development guide to configure MySQL, migrate and seed. Run `npm test`, `npm run typecheck`, `npm run build`, and, with a dedicated test database configured, `npm run test:integration`.
 
-Place the source workbook at ignored `reference/RECCE DETAILED.xlsx`, then run `npm run workbook:analyze`. Output contains structural counts and column types only. Never commit the workbook, raw records, credentials or analysis containing personal values. Generated summaries are not proof of valid imported records.
-
-No MySQL database, migrations, administrator account or imports have been created. After design approval, implement the specified backend, React frontend, movement workflow, reports, reviewed import process and security tests in phases. Keep fictional fixtures separate from actual personnel records.
+Native Prisma engine downloads are currently blocked by environment policy. The pinned offline WASM validator, JavaScript-engine client generator and checksum-aware migration runner provide a tested local workflow without disabling artifact or TLS verification. Standard Prisma migration files and migration ledger are retained for deployment environments with native Prisma CLI access.

@@ -1,6 +1,6 @@
 # Proposed database architecture
 
-This is a design proposal, not a running application. All 34 requested entities are represented in `backend/prisma/schema.prisma`, plus RankAlias. Prisma names use singular PascalCase and fields camelCase; table/field naming is an implementation convention rather than a change in meaning. The schema is the complete field/type/key reference. `relationships.md` renders every foreign-key relationship.
+This document records the original Phase 1 proposal. The conditionally approved amendments and Phase 2 implementation are described in [schema-amendments.md](schema-amendments.md) and [backend-development.md](backend-development.md). All 34 requested entities are represented in `backend/prisma/schema.prisma`, plus RankAlias. Prisma names use singular PascalCase and fields camelCase; table/field naming is an implementation convention rather than a change in meaning. The schema is the complete field/type/key reference. `relationships.md` renders every foreign-key relationship.
 
 ## Design changes proposed for approval
 
@@ -48,7 +48,7 @@ Use Argon2id passwords, opaque secure HTTP-only SameSite session cookies, CSRF t
 
 Roles proposed: System Administrator, Personnel Administrator, Records Officer, Sub-Unit Supervisor, Reporting Officer, Read-Only User. Approve an explicit permission matrix before seeding. No default passwords, real data fixtures or automatic production admin account.
 
-## Decisions needed before Phase 2
+## Original review decisions (see updated amendments)
 
 1. Approve or amend this schema and proposed changes. Confirm E is canonical rank, how specialties should be retained, rank hierarchy and RSM meaning.
 2. Identify real sub-units versus reporting categories, especially MO/NA; explain FORMATION, DISPOSITION and R, and confirm the unit hierarchy.

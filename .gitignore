@@ -6,3 +6,7 @@ reference/
 dist/
 coverage/
 *.log
+
+.local/
+
+.prisma/

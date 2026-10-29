@@ -1,36 +1,42 @@
 # Database relationships
 
-Proposed design; no migrations have been applied. Nullable references permit incomplete legacy records. All deletion actions restrict dependent record removal.
+Updated Phase 2 schema. Every foreign key restricts key updates and deletion. Optional references are marked; unverified dates remain in staging. CHECK constraints and overlap triggers are in migration SQL.
 
 ```mermaid
 erDiagram
-    County ||--o{ Officer : countyId
-    Ethnicity ||--o{ Officer : ethnicityId
+    County o|--o{ Officer : countyId
+    Ethnicity o|--o{ Officer : ethnicityId
     Officer ||--o| OfficerServiceProfile : officerId
     Rank ||--o{ RankAlias : rankId
     Officer ||--o{ OfficerRankHistory : officerId
     Rank ||--o{ OfficerRankHistory : rankId
+    User ||--o{ OfficerRankHistory : datesVerifiedById
     Officer ||--o| OfficerFinancialDetail : officerId
-    Bank ||--o{ OfficerFinancialDetail : bankId
-    Unit ||--o{ Unit : parentUnitId
+    Bank o|--o{ OfficerFinancialDetail : bankId
+    Unit o|--o{ Unit : parentUnitId
     Unit ||--o{ SubUnit : unitId
     Officer ||--o{ OfficerAssignment : officerId
     Unit ||--o{ OfficerAssignment : unitId
-    SubUnit ||--o{ OfficerAssignment : subUnitId
+    SubUnit o|--o{ OfficerAssignment : subUnitId
+    User ||--o{ OfficerAssignment : datesVerifiedById
     OfficerAssignment ||--o{ DeploymentRecord : assignmentId
+    User ||--o{ DeploymentRecord : datesVerifiedById
     Unit ||--o{ RankEstablishment : unitId
-    SubUnit ||--o{ RankEstablishment : subUnitId
+    SubUnit o|--o{ RankEstablishment : subUnitId
     Rank ||--o{ RankEstablishment : rankId
+    User ||--o{ RankEstablishment : datesVerifiedById
     Officer ||--o{ PersonnelMovement : officerId
     MovementType ||--o{ PersonnelMovement : movementTypeId
-    OfficerAssignment ||--o{ PersonnelMovement : fromAssignmentId
-    OfficerAssignment ||--o{ PersonnelMovement : toAssignmentId
-    Rank ||--o{ PersonnelMovement : fromRankId
-    Rank ||--o{ PersonnelMovement : toRankId
+    OfficerAssignment o|--o{ PersonnelMovement : fromAssignmentId
+    OfficerAssignment o|--o{ PersonnelMovement : toAssignmentId
+    Rank o|--o{ PersonnelMovement : fromRankId
+    Rank o|--o{ PersonnelMovement : toRankId
     User ||--o{ PersonnelMovement : recordedById
-    User ||--o{ PersonnelMovement : approvedById
+    User o|--o{ PersonnelMovement : approvedById
+    User ||--o{ PersonnelMovement : datesVerifiedById
     Officer ||--o{ OfficerStatusHistory : officerId
-    PersonnelMovement ||--o{ OfficerStatusHistory : movementId
+    PersonnelMovement o|--o{ OfficerStatusHistory : movementId
+    User ||--o{ OfficerStatusHistory : datesVerifiedById
     PersonnelMovement ||--o{ MovementDocument : movementId
     User ||--o{ MovementDocument : uploadedById
     Officer ||--o{ OfficerEducation : officerId
@@ -43,10 +49,12 @@ erDiagram
     Role ||--o{ UserRole : roleId
     Role ||--o{ RolePermission : roleId
     Permission ||--o{ RolePermission : permissionId
-    User ||--o{ AuditLog : userId
-    Rank ||--o{ RetirementRule : rankId
+    User o|--o{ AuditLog : userId
+    Rank o|--o{ RetirementRule : rankId
+    User o|--o{ RetirementRule : approvedById
     User ||--o{ ImportBatch : uploadedById
     ImportBatch ||--o{ ImportRow : batchId
-    Officer ||--o{ ImportRow : officerId
+    Officer o|--o{ ImportRow : officerId
     User ||--o{ UserSession : userId
+    User o|--o{ StrengthInclusionRule : approvedById
 ```
