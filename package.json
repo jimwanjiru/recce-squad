@@ -11,7 +11,7 @@
     "build": "tsc -p backend/tsconfig.json && npm run build:frontend",
     "dev": "tsx backend/src/server.ts",
     "start": "node backend/dist/src/server.js",
-    "db:generate": "bash tools/generate-client.sh",
+    "db:generate": "node tools/generate-client-native.cjs",
     "db:migrate": "tsx tools/migrate.ts",
     "db:seed": "tsx backend/prisma/seed.ts",
     "db:migrate:test": "tsx tools/migrate.ts --test",
@@ -19,7 +19,11 @@
     "build:frontend": "vite build --config frontend/vite.config.ts",
     "typecheck:frontend": "tsc -p frontend/tsconfig.json",
     "test:browser": "playwright test --config frontend/playwright.config.ts",
-    "test:browser:server": "node frontend/tests/server.cjs"
+    "test:browser:server": "node frontend/tests/server.cjs",
+    "local:configure": "node tools/native-configure.cjs",
+    "local:start": "node tools/native-launch.cjs",
+    "local:access": "node tools/native-launch.cjs --access",
+    "local:build": "npm run db:generate && npm run schema:validate && npm run build"
   },
   "repository": {
     "type": "git",

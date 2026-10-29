@@ -1,4 +1,6 @@
-# Run RECCE on your computer
+# Run RECCE using Docker
+
+For a laptop without Docker, use the [native installation guide](native-installation.md).
 
 This package runs the current officer and organization modules on localhost. It includes registration, search, editing, profiles, archive/restore, ranks, units, sub-units, verified assignment baselines, deployments, dated approved establishments, authentication, permissions and account password changes.
 
@@ -91,4 +93,4 @@ The application container runs as the unprivileged Node user. Only the MySQL con
 
 This Compose configuration is a **local HTTP installation**, not a public production deployment. It uses the existing development-cookie policy (HTTP-only and SameSite Strict), a private database network and disabled local MySQL binary logging so schema-scoped migrations can create triggers without global privileges. Public deployments need reviewed HTTPS, database TLS/accounts, backups, role scopes and approved personnel policies. Do not expose this configuration to the Internet or use real personnel data without organizational approval of storage/access arrangements.
 
-Native developer instructions remain available in [backend-development.md](backend-development.md); they require host Node.js 24, npm, Python and MySQL. The Docker route above is the recommended cross-platform local installation.
+Native developer instructions remain available in [backend-development.md](backend-development.md); they require host Node.js 24, npm and MySQL. A guided [no-Docker installation](native-installation.md) is also available.

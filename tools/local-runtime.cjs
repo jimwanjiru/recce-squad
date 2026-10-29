@@ -1,6 +1,27 @@
 const fs = require("node:fs");
 const path = require("node:path");
 function localConfiguration() {
+  if (process.env.LOCAL_NATIVE === "true") {
+    require("dotenv").config({ quiet: true });
+    const config = JSON.parse(
+      fs.readFileSync(".local/native-access.json", "utf8"),
+    );
+    const url = new URL(process.env.DATABASE_URL);
+    if (
+      process.env.NODE_ENV === "production" ||
+      url.protocol !== "mysql:" ||
+      !["127.0.0.1", "localhost"].includes(url.hostname) ||
+      config.email !== "admin@recce.local" ||
+      typeof config.administratorPassword !== "string" ||
+      config.administratorPassword.length < 14
+    )
+      throw new Error(
+        "Native local startup requires a loopback database and development mode",
+      );
+    process.env.BIND_HOST = "127.0.0.1";
+    process.env.LOCAL_BOOTSTRAP = "true";
+    return config;
+  }
   if (
     process.env.LOCAL_DOCKER !== "true" ||
     process.env.NODE_ENV === "production"

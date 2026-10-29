@@ -1,5 +1,7 @@
 # Backend development and API
 
+For installation without Docker, follow [native-installation.md](native-installation.md).
+
 ## Local development
 
 Use the existing checkout; cloud tasks are isolated, so create no Git worktree unless explicitly requested. Never copy real workbook rows into test fixtures, logs or seed files. `reference/`, `.env`, `.local/`, generated Prisma clients and build outputs are ignored.
@@ -72,7 +74,7 @@ Audit events store changed field names, never passwords, tokens or sensitive cha
 
 `npm run db:migrate` applies the checked-in Prisma migration SQL, validates checksums, uses a named advisory lock and writes the standard `_prisma_migrations` ledger. It never resets a database. MySQL DDL is not transactional: a failed migration is retained and blocks automatic retries. Inspect/recover the actual partial schema and ledger deliberately; do not simply delete failed entries. The files and ledger follow Prisma conventions; native `prisma migrate deploy` compatibility has not been exercised because engine downloads are blocked. Validate that deployment path in the target environment before production use. The current helper is pinned to Prisma 6.19 and must be reviewed on upgrade.
 
-The offline client generator calls Prisma's pinned generator RPC with the validated DMMF and JavaScript-engine configuration; Python manages the subprocess handshake. npm integrity checks remain enabled. Native engine binaries are neither downloaded nor spoofed.
+The offline client generator calls Prisma's pinned generator RPC with the validated DMMF and JavaScript-engine configuration; Node.js manages the cross-platform subprocess handshake. npm integrity checks remain enabled. Native engine binaries are neither downloaded nor spoofed.
 
 Create a separate test schema and grant the local development user access, using only this task's database container:
 

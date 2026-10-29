@@ -74,7 +74,7 @@ async function main() {
 }
 main().catch(() => {
   console.error(
-    "Local application startup failed. Check database health, migrations and credential volumes. No credentials were logged.",
+    "Local application startup failed. Check database health, migrations and private configuration. No credentials were logged.",
   );
   process.exitCode = 1;
 });
