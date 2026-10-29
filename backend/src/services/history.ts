@@ -64,3 +64,12 @@ export async function assertNoOverlap(
         : await tx.officerStatusHistory.count({ where });
   if (count) throw new HttpError(409, "OVERLAPPING_HISTORY");
 }
+
+export function businessDate(now: Date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}

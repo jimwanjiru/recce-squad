@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { overlaps, verifiedDate } from "../src/services/history.js";
+import {
+  overlaps,
+  verifiedDate,
+  businessDate,
+} from "../src/services/history.js";
 import { retirementRule, strengthDecision } from "../src/services/policies.js";
 import {
   permittedOfficerSelect,
@@ -98,4 +102,8 @@ test("sensitive field reads, writes and exports need independent permissions", (
   assert(permissions.includes("fields.disciplinary_records.write"));
   assert(permissions.includes("fields.financial_details.view"));
   assert(!safe.importRows);
+});
+
+test("business dates follow Nairobi across UTC midnight", () => {
+  assert.equal(businessDate(new Date("2026-10-29T21:30:00Z")), "2026-10-30");
 });

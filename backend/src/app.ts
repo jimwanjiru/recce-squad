@@ -1,4 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
+import path from "node:path";
+import { existsSync } from "node:fs";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
@@ -7,7 +9,7 @@ import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { z, ZodError } from "zod";
 import { HttpError } from "./services/errors.js";
-import { permittedOfficerSelect } from "./config/permissions.js";
+import { officerRoutes } from "./routes/officers.js";
 export type AppOptions = {
   origin: string;
   production: boolean;
@@ -289,46 +291,7 @@ export async function createApp(db: PrismaClient, options: AppOptions) {
       res.status(204).end();
     }),
   );
-  // Read-only foundation endpoint demonstrates server-side field projection; Phase 3 adds officer workflows.
-  app.get(
-    "/api/officers",
-    requirePermission("officers.view"),
-    asyncRoute(async (req, res) => {
-      const query = z
-        .object({
-          page: z.coerce.number().int().min(1).max(100000).default(1),
-          pageSize: z.coerce.number().int().min(1).max(100).default(25),
-          q: z.string().max(100).optional(),
-        })
-        .strict()
-        .parse(req.query);
-      const where = {
-        deletedAt: null,
-        ...(query.q
-          ? {
-              OR: [
-                { forceNumber: { contains: query.q } },
-                { fullName: { contains: query.q } },
-              ],
-            }
-          : {}),
-      };
-      const [data, total] = await db.$transaction([
-        db.officer.findMany({
-          where,
-          select: permittedOfficerSelect(identity(res).grants),
-          skip: (query.page - 1) * query.pageSize,
-          take: query.pageSize,
-          orderBy: { id: "asc" },
-        }),
-        db.officer.count({ where }),
-      ]);
-      res.json({
-        data,
-        meta: { total, page: query.page, pageSize: query.pageSize },
-      });
-    }),
-  );
+  app.use("/api", officerRoutes(db));
   app.get(
     "/api/permissions",
     requirePermission("roles.manage"),
@@ -524,6 +487,15 @@ export async function createApp(db: PrismaClient, options: AppOptions) {
       });
     }),
   );
+  const frontendPath = path.resolve("frontend/dist");
+  if (existsSync(path.join(frontendPath, "index.html"))) {
+    app.use(express.static(frontendPath, { index: false }));
+    app.get("/{*path}", (req, res, next) => {
+      if (req.path.startsWith("/api/")) return next();
+      res.set("Cache-Control", "no-store");
+      res.sendFile(path.join(frontendPath, "index.html"));
+    });
+  }
   app.use((_req, _res, next) => next(new HttpError(404, "NOT_FOUND")));
   app.use(
     (error: unknown, _req: Request, res: Response, _next: NextFunction) => {

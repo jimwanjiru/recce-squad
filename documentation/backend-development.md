@@ -40,6 +40,8 @@ The server binds loopback port 3000 by default. Its health endpoint checks MySQL
 
 The fictional login is `developer@example.invalid`, using the password generated locally in `.env` under `DEMO_ADMIN_PASSWORD`. Read that local file securely when signing in; do not paste credentials into chat or Git. Re-running the seed preserves existing passwords and fictional records. It creates six named operational roles without presumed grants, plus a distinct fictional development role with the permission catalog. No retirement, strength, establishment or actual workbook rows are seeded.
 
+See [Phase 3 officer management](officer-management.md) for the React application, officer mutation/profile APIs, frontend development and browser tests.
+
 ## Authentication and authorization API
 
 All responses use `{ data }` or `{ error: { code } }`. Validation errors include safe field paths. Cookies are HTTP-only and SameSite Strict; production uses a Secure `__Host-` cookie and requires an HTTPS `APP_ORIGIN`. Tokens are random and only their SHA-256 hashes are stored. Passwords use Argon2id. Sessions expire after eight hours; password changes revoke all sessions. Account deactivation and user-role changes revoke sessions; permissions are reloaded on every request.
@@ -52,7 +54,7 @@ All responses use `{ data }` or `{ error: { code } }`. Validation errors include
 | GET `/api/auth/csrf` | Refresh CSRF token after reload; rejects cross-site requests |
 | POST `/api/auth/logout` | Revoke current session |
 | POST `/api/auth/password` | Current password + new password of at least 14 characters; rate limited |
-| GET `/api/officers` | `officers.view`; paginated read-only foundation, optional q/page/pageSize |
+| GET `/api/officers` | `officers.view`; paginated/searchable register (see Phase 3 officer API documentation) |
 | GET/POST `/api/users` | `users.manage`; bounded list or create user without roles |
 | PATCH `/api/users/:id` | `users.manage`; toggle active flag; self-deactivation rejected |
 | PUT `/api/users/:id/roles` | `roles.manage`; replace explicit role IDs, revoke sessions; self-change rejected |
