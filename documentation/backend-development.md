@@ -40,7 +40,7 @@ The server binds loopback port 3000 by default. Its health endpoint checks MySQL
 
 The fictional login is `developer@example.invalid`, using the password generated locally in `.env` under `DEMO_ADMIN_PASSWORD`. Read that local file securely when signing in; do not paste credentials into chat or Git. Re-running the seed preserves existing passwords and fictional records. It creates six named operational roles without presumed grants, plus a distinct fictional development role with the permission catalog. No retirement, strength, establishment or actual workbook rows are seeded.
 
-See [Phase 3 officer management](officer-management.md) for the React application, officer mutation/profile APIs, frontend development and browser tests.
+See [Phase 4 organization management](organization-management.md) for organization APIs and permissions. See [Phase 3 officer management](officer-management.md) for the React application, officer mutation/profile APIs, frontend development and browser tests.
 
 ## Authentication and authorization API
 

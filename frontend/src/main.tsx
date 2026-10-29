@@ -15,6 +15,9 @@ const OfficerForm = React.lazy(() =>
 const Profile = React.lazy(() =>
   import("./pages/Profile").then((m) => ({ default: m.Profile })),
 );
+const Organization = React.lazy(() =>
+  import("./pages/Organization").then((m) => ({ default: m.Organization })),
+);
 import { Layout } from "./components/Layout";
 import "./styles.css";
 const queryClient = new QueryClient({
@@ -25,7 +28,11 @@ const queryClient = new QueryClient({
 function App() {
   const { user, can } = useAuth();
   if (!user) return <Login />;
-  if (!can("officers.view"))
+  if (
+    !can("officers.view") &&
+    !can("organization.view") &&
+    !can("establishments.view")
+  )
     return (
       <main className="loading-screen">
         <h1>Access not assigned</h1>
@@ -39,11 +46,20 @@ function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
+        <Route path="/organization" element={<Organization />} />
         <Route path="/officers" element={<Officers />} />
         <Route path="/officers/new" element={<OfficerForm />} />
         <Route path="/officers/:id" element={<Profile />} />
         <Route path="/officers/:id/edit" element={<OfficerForm />} />
-        <Route path="*" element={<Navigate to="/officers" replace />} />
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={can("officers.view") ? "/officers" : "/organization"}
+              replace
+            />
+          }
+        />
       </Route>
     </Routes>
   );

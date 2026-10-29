@@ -1,12 +1,12 @@
 {
   "name": "recce-squad",
   "version": "1.0.0",
-  "description": "RECCE personnel management backend foundation",
+  "description": "RECCE officers personnel management system",
   "scripts": {
     "test": "node tools/design.test.cjs && tsx backend/tests/unit.test.ts",
     "schema:validate": "node tools/validate-schema.cjs",
     "workbook:analyze": "node tools/analyze-workbook.cjs",
-    "test:integration": "tsx backend/tests/integration.test.ts && tsx backend/tests/officers.test.ts",
+    "test:integration": "tsx backend/tests/integration.test.ts && tsx backend/tests/officers.test.ts && tsx backend/tests/organization.test.ts",
     "typecheck": "tsc --noEmit -p backend/tsconfig.json",
     "build": "tsc -p backend/tsconfig.json && npm run build:frontend",
     "dev": "tsx backend/src/server.ts",

@@ -9,6 +9,7 @@ import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { z, ZodError } from "zod";
 import { HttpError } from "./services/errors.js";
+import { organizationRoutes } from "./routes/organization.js";
 import { officerRoutes } from "./routes/officers.js";
 export type AppOptions = {
   origin: string;
@@ -292,6 +293,7 @@ export async function createApp(db: PrismaClient, options: AppOptions) {
     }),
   );
   app.use("/api", officerRoutes(db));
+  app.use("/api", organizationRoutes(db));
   app.get(
     "/api/permissions",
     requirePermission("roles.manage"),

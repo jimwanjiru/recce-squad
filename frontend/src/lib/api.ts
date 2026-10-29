@@ -62,6 +62,23 @@ export function message(error: unknown) {
         .map((field) => `${field.path}: ${field.message}`)
         .join(" · ");
     const messages: Record<string, string> = {
+      MOVEMENT_WORKFLOW_REQUIRED:
+        "This officer already has history. Use the personnel movement approval workflow for subsequent assignments.",
+      UNIT_CYCLE: "A unit cannot become its own ancestor.",
+      ACTIVE_CHILDREN_EXIST:
+        "Deactivate active child units and sub-units first.",
+      REFERENCED_HIERARCHY_IMMUTABLE:
+        "This hierarchy is referenced by existing records. Reorganization requires a dated, reviewed change.",
+      REFERENCED_TAXONOMY_IMMUTABLE:
+        "This rank is already referenced. Its code and hierarchy order must be preserved.",
+      RANK_ALIAS_CONFLICT: "This spelling is assigned to another rank.",
+      DEPLOYMENT_OUTSIDE_ASSIGNMENT:
+        "Deployment dates must fit inside the assignment's verified dates.",
+      OVERLAPPING_HISTORY: "These dates overlap an existing verified record.",
+      OVERLAPPING_ESTABLISHMENT:
+        "An approved establishment already covers this rank, scope and period.",
+      INVALID_PARENT_UNIT: "Choose an active parent unit.",
+      INACTIVE_PARENT_UNIT: "Reactivate the parent unit first.",
       INVALID_CREDENTIALS: "The email or password is incorrect.",
       PERMISSION_DENIED: "You do not have permission for this action.",
       RECORD_CHANGED:

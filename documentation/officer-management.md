@@ -75,4 +75,4 @@ npm run test:browser
 
 The browser server refuses to use an unspecified/non-test database. The E2E test creates a unique fictional user/role and officer, verifies registration, leading-zero identifiers, editing, search, archive/restore, mobile navigation, page-width containment and logout/reload, then removes only its own fixtures. Screenshots and browser artifacts remain under ignored `.local/`.
 
-Organization administration, approval-based personnel movements, calculated reports and reviewed workbook import/export are subsequent phases. Course/award/disciplinary administration is not implemented by this officer editor; existing entries can be viewed when authorized.
+Organization administration is implemented in [Phase 4](organization-management.md). Approval-based personnel movements, calculated reports and reviewed workbook import/export remain subsequent phases. Course/award/disciplinary administration is not implemented by this officer editor; existing entries can be viewed when authorized.

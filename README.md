@@ -1,11 +1,12 @@
 # RECCE Officers Personnel Management System
 
-Phase 3 officer management: a React/TypeScript interface backed by Express, Prisma and MySQL. Register, search, edit, profile, archive and restore officers with server-side sessions, RBAC, sensitive-field permissions and preserved histories. Organizational administration, movements, reports and workbook import/export remain subsequent phases.
+Phase 4 organizational management builds on the React officer interface and secure Express/Prisma/MySQL backend. Manage ranks, rank spellings, unit hierarchies, sub-units, verified assignment baselines, deployments and externally approved staffing establishments. Approval-based personnel movements, calculated reports and workbook import/export remain subsequent phases.
 
 - [Updated schema and remaining decisions](documentation/schema-amendments.md)
 - [Complete Prisma schema](backend/prisma/schema.prisma)
 - [Relationships](documentation/relationships.md)
 - [Workbook mapping](documentation/workbook-analysis.md)
+- [Organization management and permissions](documentation/organization-management.md)
 - [Officer screens, APIs and startup](documentation/officer-management.md)
 - [Backend setup and authentication](documentation/backend-development.md)
 - [Validation evidence](documentation/validation.md)

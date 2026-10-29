@@ -15,6 +15,13 @@ export const basePermissions = [
   "imports.preview",
   "imports.commit",
   "policies.manage",
+  "organization.view",
+  "ranks.manage",
+  "units.manage",
+  "sub_units.manage",
+  "assignments.baseline.manage",
+  "establishments.view",
+  "establishments.manage",
 ] as const;
 export const sensitiveFields = {
   payrollNumber: "payroll_number",

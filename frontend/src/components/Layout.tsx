@@ -7,20 +7,25 @@ import {
   Menu,
   LockKeyhole,
   ChevronRight,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../lib/auth";
 import { Button } from "./ui/button";
 import { ErrorNotice } from "./shared";
 export function Layout() {
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<unknown>();
   return (
     <div className="app-shell">
       <aside className={`sidebar ${open ? "open" : ""}`}>
-        <Link to="/officers" className="brand" onClick={() => setOpen(false)}>
+        <Link
+          to={can("officers.view") ? "/officers" : "/organization"}
+          className="brand"
+          onClick={() => setOpen(false)}
+        >
           <div className="brand-symbol">
             <ShieldCheck size={27} />
           </div>
@@ -31,20 +36,37 @@ export function Layout() {
         </Link>
         <div className="sidebar-rule" />
         <p className="nav-label">PERSONNEL</p>
-        <NavLink
-          to="/officers"
-          className={`nav-item ${location.search.includes("archived") ? "" : "selected"}`}
-          onClick={() => setOpen(false)}
-        >
-          <Users size={19} /> Officers
-        </NavLink>
-        <Link
-          to="/officers?archive=archived"
-          className={`nav-item ${location.search.includes("archived") ? "selected" : ""}`}
-          onClick={() => setOpen(false)}
-        >
-          <Archive size={19} /> Archived records
-        </Link>
+        {can("officers.view") && (
+          <>
+            <NavLink
+              to="/officers"
+              className={`nav-item ${location.pathname.startsWith("/officers") && !location.search.includes("archived") ? "selected" : ""}`}
+              onClick={() => setOpen(false)}
+            >
+              <Users size={19} /> Officers
+            </NavLink>
+            <Link
+              to="/officers?archive=archived"
+              className={`nav-item ${location.search.includes("archived") ? "selected" : ""}`}
+              onClick={() => setOpen(false)}
+            >
+              <Archive size={19} /> Archived records
+            </Link>
+          </>
+        )}
+        {(can("organization.view") ||
+          can("establishments.view") ||
+          can("fields.assignments.view") ||
+          can("fields.deployment_records.view")) && (
+          <Link
+            to="/organization"
+            className={`nav-item ${location.pathname.startsWith("/organization") ? "selected" : ""}`}
+            onClick={() => setOpen(false)}
+          >
+            <Building2 size={19} />
+            Organization
+          </Link>
+        )}
         <div className="sidebar-note">
           <LockKeyhole size={18} />
           <strong>Protected personnel records</strong>
@@ -85,7 +107,11 @@ export function Layout() {
           </Button>
           <div className="breadcrumb">
             Personnel <ChevronRight size={14} />
-            <span>Officers</span>
+            <span>
+              {location.pathname.startsWith("/organization")
+                ? "Organization"
+                : "Officers"}
+            </span>
           </div>
           <span className="session-badge">
             <span /> Secure session

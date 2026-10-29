@@ -210,6 +210,7 @@ model RankEstablishment {
   datesVerifiedBy    User      @relation("RankEstablishment_dateVerifier", fields: [datesVerifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@index([unitId, rankId, effectiveFrom])
+  @@index([unitId, subUnitId, rankId, effectiveFrom, effectiveTo], map: "RankEstablishment_unitId_subUnitId_rankId_interval_idx")
 }
 
 model MovementType {

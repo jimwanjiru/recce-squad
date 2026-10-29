@@ -1,6 +1,7 @@
 // Applies committed Prisma-compatible migration files without native engine downloads.
 // MySQL DDL is not transactional. Failed migrations remain recorded and block retries.
 import "dotenv/config";
+import { splitStatements } from "./sql-statements.cjs";
 import mariadb from "mariadb";
 import { readdir, readFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
@@ -62,13 +63,7 @@ async function main() {
         },
       );
       try {
-        const statements = [
-          ...remainder
-            .split(";")
-            .map((x) => x.trim())
-            .filter((x) => x.replace(/^--.*$/gm, "").trim()),
-          ...triggers,
-        ];
+        const statements = [...splitStatements(remainder), ...triggers];
         for (const statement of statements) await db.query(statement);
         await db.query(
           "UPDATE `_prisma_migrations` SET finished_at=CURRENT_TIMESTAMP(3), applied_steps_count=? WHERE id=?",

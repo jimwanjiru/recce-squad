@@ -53,3 +53,15 @@ test("schema includes all proposed entities, restricted relations and integrity 
     for (const f of m.fields.filter((f) => f.relationFromFields?.length))
       assert.equal(f.relationOnDelete, "Restrict");
 });
+
+test("migration splitting handles comment and quoted semicolons without truncating SQL", () => {
+  const { splitStatements } = require("./sql-statements.cjs");
+  assert.deepEqual(
+    splitStatements(
+      "-- comment; ignore\nINSERT INTO t VALUES ('a;b'); /* comment; */ SELECT `semi;column` FROM t;",
+    ),
+    ["INSERT INTO t VALUES ('a;b')", "SELECT `semi;column` FROM t"],
+  );
+  assert.throws(() => splitStatements("SELECT 'unfinished"));
+  assert.throws(() => splitStatements("/*! executable */ SELECT 1;"));
+});

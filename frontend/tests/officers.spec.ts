@@ -85,6 +85,30 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await page
     .getByLabel("Full name", { exact: false })
     .fill("Fictional Browser Officer Updated");
+  const officerId = new URL(page.url()).pathname.split("/")[2];
+  const currentRecord = await (
+    await page.request.get("/api/officers/" + officerId)
+  ).json();
+  const refreshedToken = await (
+    await page.request.get("/api/auth/csrf")
+  ).json();
+  const parallelChange = await page.request.patch(
+    "/api/officers/" + officerId,
+    {
+      headers: {
+        Origin: "http://127.0.0.1:3100",
+        "X-CSRF-Token": refreshedToken.data.csrfToken,
+      },
+      data: { version: currentRecord.data.version, phone: "000-CONCURRENT" },
+    },
+  );
+  expect(parallelChange.status()).toBe(200);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("alert")).toContainText("record changed");
+  await page.reload();
+  await page
+    .getByLabel("Full name", { exact: false })
+    .fill("Fictional Browser Officer Updated");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(
     page.getByRole("heading", {
@@ -108,6 +132,7 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await page.screenshot({
     path: ".local/officers-desktop.png",
     fullPage: true,
+    animations: "disabled",
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(

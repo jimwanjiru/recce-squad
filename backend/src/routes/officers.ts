@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
+import { organizationLock } from "../services/organization-lock.js";
 import { HttpError } from "../services/errors.js";
 import {
   fieldPermission,
@@ -237,6 +238,7 @@ export function officerRoutes(db: PrismaClient) {
         ...data
       } = body;
       const result = await db.$transaction(async (tx) => {
+        if (initialRank || initialAssignment) await organizationLock(tx);
         await references(tx, data);
         if (
           initialRank &&

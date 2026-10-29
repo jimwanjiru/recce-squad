@@ -102,6 +102,7 @@ export function OfficerForm() {
   const cache = useQueryClient();
   const [error, setError] = useState<unknown>();
   const [initializedId, setInitializedId] = useState<string | null>(null);
+  const [initialVersion, setInitialVersion] = useState<number | null>(null);
   const form = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: defaults,
@@ -138,7 +139,8 @@ export function OfficerForm() {
     if (
       initializedId === id ||
       !officer.data ||
-      ((service.isPending || Boolean(service.error)) &&
+      officer.isFetching ||
+      ((service.isPending || service.isFetching || Boolean(service.error)) &&
         can("fields.service_profile.view"))
     )
       return;
@@ -164,11 +166,14 @@ export function OfficerForm() {
       values.serviceRemarks = service.data.data.serviceRemarks ?? "";
     }
     reset(values);
+    setInitialVersion(row.version);
     setInitializedId(id!);
   }, [
     officer.data,
+    officer.isFetching,
     service.data,
     service.isPending,
+    service.isFetching,
     service.error,
     reset,
     can,
@@ -269,7 +274,7 @@ export function OfficerForm() {
           setError(undefined);
           try {
             const body: Record<string, unknown> = edit
-              ? { version: officer.data!.data.version }
+              ? { version: initialVersion! }
               : { forceNumber: values.forceNumber, fullName: values.fullName };
             for (const key of ["forceNumber", "fullName"] as const)
               if (edit && dirtyFields[key]) body[key] = values[key];
