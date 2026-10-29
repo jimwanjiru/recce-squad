@@ -1,6 +1,6 @@
 # RECCE Officers Personnel Management System
 
-Run directly on your laptop with **Node.js 24 and MySQL 8.4**, without Docker:
+Run directly on your laptop with **Node.js 24 and MySQL 8.4 (or MariaDB 10.11)**, without Docker:
 
 ```bash
 git clone https://github.com/jimwanjiru/recce-squad.git

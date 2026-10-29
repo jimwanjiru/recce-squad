@@ -3,6 +3,7 @@
 import "dotenv/config";
 import { splitStatements } from "./sql-statements.cjs";
 import mariadb from "mariadb";
+import { validatePartialConstraints } from "./mariadb-recovery.cjs";
 import { readdir, readFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { connectionOptions } from "../backend/src/config/database.js";
@@ -18,6 +19,16 @@ async function main() {
     connectionOptions(process.env.DATABASE_URL),
   );
   try {
+    const [server] = await db.query("SELECT VERSION() AS version");
+    const maria = /MariaDB/i.test(server.version);
+    const recover = process.argv.includes("--recover-mariadb-constraints");
+    if (recover && (!maria || process.env.NODE_ENV === "production"))
+      throw new Error("Recovery is restricted to local MariaDB installations");
+    // Keep migration bytes/checksums; translate only the server-specific variable at execution.
+    const dialect = (statement: string) =>
+      maria
+        ? statement.replaceAll("@@transaction_isolation", "@@tx_isolation")
+        : statement;
     const lock = await db.query(
       "SELECT GET_LOCK('recce_migrations', 15) AS acquired",
     );
@@ -39,21 +50,32 @@ async function main() {
       );
       const checksum = createHash("sha256").update(sql).digest("hex");
       const previous = await db.query(
-        "SELECT checksum, finished_at FROM `_prisma_migrations` WHERE migration_name=? AND rolled_back_at IS NULL",
+        "SELECT id, checksum, finished_at FROM `_prisma_migrations` WHERE migration_name=? AND rolled_back_at IS NULL",
         [name],
       );
-      if (previous.length) {
-        if (!previous[0].finished_at || previous[0].checksum !== checksum)
+      const recovering =
+        recover &&
+        name === "20261029190100_constraints" &&
+        previous.length === 1 &&
+        !previous[0].finished_at &&
+        previous[0].checksum === checksum;
+      if (previous.length && !recovering) {
+        if (
+          previous.length !== 1 ||
+          !previous[0].finished_at ||
+          previous[0].checksum !== checksum
+        )
           throw new Error(
             "Failed or changed migration requires explicit recovery",
           );
         continue;
       }
-      const id = randomUUID();
-      await db.query(
-        "INSERT INTO `_prisma_migrations` (id, checksum, migration_name) VALUES (?, ?, ?)",
-        [id, checksum, name],
-      );
+      const id = recovering ? previous[0].id : randomUUID();
+      if (!recovering)
+        await db.query(
+          "INSERT INTO `_prisma_migrations` (id, checksum, migration_name) VALUES (?, ?, ?)",
+          [id, checksum, name],
+        );
       const triggers: string[] = [];
       const remainder = sql.replace(
         /^CREATE TRIGGER[\s\S]*?^END;/gm,
@@ -64,9 +86,22 @@ async function main() {
       );
       try {
         const statements = [...splitStatements(remainder), ...triggers];
-        for (const statement of statements) await db.query(statement);
+        let pending = statements;
+        if (recovering) {
+          const later = await db.query(
+            "SELECT id FROM `_prisma_migrations` WHERE migration_name > ? AND rolled_back_at IS NULL",
+            [name],
+          );
+          if (later.length)
+            throw new Error("Later migrations require manual recovery review");
+          pending = await validatePartialConstraints(db, statements);
+          console.log(
+            "Verified all 11 existing constraints; completing missing MariaDB-compatible triggers.",
+          );
+        }
+        for (const statement of pending) await db.query(dialect(statement));
         await db.query(
-          "UPDATE `_prisma_migrations` SET finished_at=CURRENT_TIMESTAMP(3), applied_steps_count=? WHERE id=?",
+          "UPDATE `_prisma_migrations` SET finished_at=CURRENT_TIMESTAMP(3), logs=NULL, applied_steps_count=? WHERE id=?",
           [statements.length, id],
         );
         console.log(`Applied ${name}`);
