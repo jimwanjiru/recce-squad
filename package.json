@@ -1,0 +1,31 @@
+{
+  "name": "recce-squad",
+  "version": "1.0.0",
+  "description": "RECCE personnel system: proposed architecture and offline workbook analysis",
+  "scripts": {
+    "test": "node tools/design.test.cjs",
+    "schema:validate": "node tools/validate-schema.cjs",
+    "workbook:analyze": "node tools/analyze-workbook.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jimwanjiru/recce-squad.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jimwanjiru/recce-squad/issues"
+  },
+  "homepage": "https://github.com/jimwanjiru/recce-squad#readme",
+  "devDependencies": {
+    "@prisma/internals": "^6.19.0",
+    "exceljs": "^4.4.0",
+    "prisma": "^6.19.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
