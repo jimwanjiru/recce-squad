@@ -1512,3 +1512,15 @@ td.mono {
     min-width: 90px;
   }
 }
+.account-card {
+  max-width: 600px;
+  padding: 28px;
+}
+.account-card .form-field {
+  margin-bottom: 20px;
+}
+.account-card .privacy-note {
+  line-height: 1.8;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}

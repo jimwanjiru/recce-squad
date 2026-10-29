@@ -65,3 +65,47 @@ test("migration splitting handles comment and quoted semicolons without truncati
   assert.throws(() => splitStatements("SELECT 'unfinished"));
   assert.throws(() => splitStatements("/*! executable */ SELECT 1;"));
 });
+
+test("local initialization preserves credentials and refuses mismatched volumes", async () => {
+  const { initialize } = require("./local-credentials.cjs");
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "recce-local-"));
+  try {
+    const mysql = path.join(dir, "mysql"),
+      app = path.join(dir, "app");
+    initialize(mysql, app);
+    const original = await fs.readFile(
+      path.join(app, "database-password"),
+      "utf8",
+    );
+    const admin = await fs.readFile(
+      path.join(app, "administrator-password"),
+      "utf8",
+    );
+    assert(original.trim().length >= 32);
+    assert(admin.trim().length >= 14);
+    initialize(mysql, app);
+    assert.equal(
+      (await fs.readFile(path.join(app, "database-password"), "utf8")) ===
+        original,
+      true,
+    );
+    assert.equal(
+      (await fs.readFile(path.join(app, "administrator-password"), "utf8")) ===
+        admin,
+      true,
+    );
+    await fs.chmod(path.join(mysql, "app-password"), 0o600);
+    await fs.writeFile(
+      path.join(mysql, "app-password"),
+      "different-fictional-password",
+    );
+    assert.throws(() => initialize(mysql, app));
+    assert.equal(
+      (await fs.readFile(path.join(app, "database-password"), "utf8")) ===
+        original,
+      true,
+    );
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});

@@ -9,6 +9,7 @@ const env = z
       .default("development"),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     APP_ORIGIN: z.string().url(),
+    BIND_HOST: z.enum(["127.0.0.1", "0.0.0.0"]).default("127.0.0.1"),
   })
   .parse(process.env);
 if (env.NODE_ENV === "production" && !env.APP_ORIGIN.startsWith("https://"))
@@ -20,7 +21,7 @@ async function main() {
     origin: env.APP_ORIGIN,
     production: env.NODE_ENV === "production",
   });
-  const server = app.listen(env.PORT, "127.0.0.1", () =>
+  const server = app.listen(env.PORT, env.BIND_HOST, () =>
     console.log(JSON.stringify({ event: "server_started", port: env.PORT })),
   );
   let closing = false;

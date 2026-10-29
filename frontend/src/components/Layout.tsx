@@ -8,6 +8,7 @@ import {
   LockKeyhole,
   ChevronRight,
   Building2,
+  KeyRound,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../lib/auth";
@@ -67,6 +68,14 @@ export function Layout() {
             Organization
           </Link>
         )}
+        <Link
+          to="/account"
+          className={`nav-item ${location.pathname === "/account" ? "selected" : ""}`}
+          onClick={() => setOpen(false)}
+        >
+          <KeyRound size={19} />
+          Account settings
+        </Link>
         <div className="sidebar-note">
           <LockKeyhole size={18} />
           <strong>Protected personnel records</strong>
@@ -108,9 +117,11 @@ export function Layout() {
           <div className="breadcrumb">
             Personnel <ChevronRight size={14} />
             <span>
-              {location.pathname.startsWith("/organization")
-                ? "Organization"
-                : "Officers"}
+              {location.pathname === "/account"
+                ? "Account"
+                : location.pathname.startsWith("/organization")
+                  ? "Organization"
+                  : "Officers"}
             </span>
           </div>
           <span className="session-badge">

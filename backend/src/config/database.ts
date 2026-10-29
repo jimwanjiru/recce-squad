@@ -12,7 +12,8 @@ export function connectionOptions(url: string) {
   return {
     allowPublicKeyRetrieval:
       process.env.NODE_ENV !== "production" &&
-      ["127.0.0.1", "localhost"].includes(u.hostname),
+      (["127.0.0.1", "localhost"].includes(u.hostname) ||
+        (process.env.LOCAL_DOCKER === "true" && u.hostname === "mysql")),
     host: u.hostname,
     port: Number(u.port || 3306),
     user: decodeURIComponent(u.username),

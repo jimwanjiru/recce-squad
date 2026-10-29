@@ -1,0 +1,17 @@
+.git
+.agents
+.codex
+.aws
+node_modules
+**/node_modules
+**/.prisma
+**/dist
+.local
+.env
+.env.*
+!.env.example
+reference
+**/*.xlsx
+**/*.xls
+coverage
+*.log

@@ -155,5 +155,29 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(page.getByLabel("Email address")).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Email address")).toBeVisible();
+  await page.getByLabel("Email address").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in securely" }).click();
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page
+    .getByRole("link", { name: "Account settings", exact: true })
+    .click();
+  await page.getByLabel("Current password", { exact: true }).fill(password);
+  await page
+    .getByLabel("New password", { exact: true })
+    .fill("Fictional-Updated-Browser-Password-2026!");
+  await page
+    .getByLabel("Confirm new password", { exact: true })
+    .fill("Fictional-Updated-Browser-Password-2026!");
+  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  await page.getByLabel("Email address").fill(email);
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("Fictional-Updated-Browser-Password-2026!");
+  await page.getByRole("button", { name: "Sign in securely" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Account settings", exact: true }),
+  ).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });

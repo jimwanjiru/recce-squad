@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# Executed migration bytes are checksum-verified and must not be normalized.
+backend/prisma/migrations/**/migration.sql -text

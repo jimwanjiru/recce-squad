@@ -1,0 +1,76 @@
+name: recce-squad
+services:
+  initialize:
+    image: node:24-bookworm-slim
+    network_mode: none
+    restart: "no"
+    entrypoint: ["node", "/initialize.cjs"]
+    volumes:
+      - ./tools/local-credentials.cjs:/initialize.cjs:ro
+      - mysql-credentials:/mysql-secrets
+      - app-credentials:/app-secrets
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: ["--skip-log-bin"]
+    environment:
+      MYSQL_DATABASE: recce_local
+      MYSQL_USER: recce_local
+      MYSQL_PASSWORD_FILE: /run/mysql-secrets/app-password
+      MYSQL_ROOT_PASSWORD_FILE: /run/mysql-secrets/root-password
+    depends_on:
+      initialize:
+        condition: service_completed_successfully
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - mysql-credentials:/run/mysql-secrets:ro
+    networks: [database]
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$(cat /run/mysql-secrets/app-password)\" mysql --protocol=TCP -h 127.0.0.1 -urecce_local -D recce_local -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: development
+      LOCAL_DOCKER: "true"
+      LOCAL_BOOTSTRAP: "true"
+      BIND_HOST: 0.0.0.0
+      PORT: "3000"
+      APP_ORIGIN: ${LOCAL_APP_ORIGIN:-http://localhost:3000}
+      LOCAL_DB_HOST: mysql
+      LOCAL_DB_NAME: recce_local
+      LOCAL_DB_USER: recce_local
+      LOCAL_CREDENTIALS_DIR: /run/app-secrets
+    depends_on:
+      initialize:
+        condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${LOCAL_HTTP_PORT:-3000}:3000"
+    volumes:
+      - app-credentials:/run/app-secrets:ro
+    networks: [default, database]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+
+networks:
+  database:
+    internal: true
+volumes:
+  mysql-data:
+  mysql-credentials:
+  app-credentials:

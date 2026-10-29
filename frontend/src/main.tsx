@@ -1,6 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "./lib/auth";
 const Login = React.lazy(() =>
@@ -18,6 +24,9 @@ const Profile = React.lazy(() =>
 const Organization = React.lazy(() =>
   import("./pages/Organization").then((m) => ({ default: m.Organization })),
 );
+const Account = React.lazy(() =>
+  import("./pages/Account").then((m) => ({ default: m.Account })),
+);
 import { Layout } from "./components/Layout";
 import "./styles.css";
 const queryClient = new QueryClient({
@@ -27,11 +36,13 @@ const queryClient = new QueryClient({
 });
 function App() {
   const { user, can } = useAuth();
+  const location = useLocation();
   if (!user) return <Login />;
   if (
     !can("officers.view") &&
     !can("organization.view") &&
-    !can("establishments.view")
+    !can("establishments.view") &&
+    location.pathname !== "/account"
   )
     return (
       <main className="loading-screen">
@@ -46,6 +57,7 @@ function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
+        <Route path="/account" element={<Account />} />
         <Route path="/organization" element={<Organization />} />
         <Route path="/officers" element={<Officers />} />
         <Route path="/officers/new" element={<OfficerForm />} />
