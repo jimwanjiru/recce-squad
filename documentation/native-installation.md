@@ -35,7 +35,7 @@ npm ci --ignore-scripts
 npm run local:configure
 ```
 
-The setup asks for your MySQL port, database, account and password, verifies the connection, and saves `.env` and `.local/native-access.json`. Password input is visible: use a private terminal. These files are excluded from Git; keep them private. Restrict their Windows file permissions to your own account if your project folder is shared. Setup never overwrites existing configuration. Use a fresh extracted folder for this guided installation if you already have a development `.env`; keep the previous folder and database intact.
+The setup asks for your MySQL port, database, account and password, verifies the connection, and saves `.env` and `.local/native-access.json`. Password input is visible: use a private terminal. These files are excluded from Git; keep them private. Restrict their Windows file permissions to your own account if your project folder is shared. Setup never overwrites existing configuration. If `.env` already exists, setup verifies its local database connection and creates only missing native access configuration. Existing accounts and passwords are preserved.
 
 ## 3. Build once and run
 

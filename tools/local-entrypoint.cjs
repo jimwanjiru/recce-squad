@@ -1,6 +1,28 @@
 const { spawnSync } = require("node:child_process");
 const { localConfiguration } = require("./local-runtime.cjs");
 async function main() {
+  if (process.env.LOCAL_NATIVE === "true") {
+    const fs = require("node:fs");
+    for (const [file, instruction] of [
+      [".env", "Run npm run local:configure first."],
+      [
+        ".local/native-access.json",
+        "Run npm run local:configure to complete native setup; do not delete .env.",
+      ],
+      [
+        "node_modules/.prisma/client/schema.prisma",
+        "Run npm run local:build first.",
+      ],
+      ["backend/dist/src/server.js", "Run npm run local:build first."],
+      ["frontend/dist/index.html", "Run npm run local:build first."],
+    ]) {
+      if (!fs.existsSync(file)) {
+        console.error(`Missing ${file}. ${instruction}`);
+        process.exitCode = 1;
+        return;
+      }
+    }
+  }
   const credentials = localConfiguration();
   const migration = spawnSync(
     process.execPath,
@@ -72,7 +94,13 @@ async function main() {
   }
   require("../backend/dist/src/server.js");
 }
-main().catch(() => {
+main().catch((error) => {
+  console.error(
+    "Startup error code:",
+    /^[A-Z0-9_]+$/.test(String(error?.code))
+      ? error.code
+      : "CHECK_LOCAL_CONFIGURATION",
+  );
   console.error(
     "Local application startup failed. Check database health, migrations and private configuration. No credentials were logged.",
   );
