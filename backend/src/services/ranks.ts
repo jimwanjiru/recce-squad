@@ -56,7 +56,8 @@ export function currentRankReferences<
 export type OfficerRanks = {
   rank1: string;
   rank2: string;
-  rankSource: "VERIFIED" | "DATABASE" | "WORKBOOK" | "UNRECORDED";
+  rankSource:
+    "VERIFIED" | "VERIFIED_IMPORT" | "DATABASE" | "WORKBOOK" | "UNRECORDED";
   specialistDesignation?: string | null;
 };
 export async function officerRanks(
@@ -106,13 +107,17 @@ export async function officerRanks(
         officerId: { in: ids.filter((id) => !verifiedIds.has(id)) },
         sourceRow: { batch: { status: { not: "ROLLED_BACK" } } },
       },
+      include: { officer: { select: { verificationStatus: true } } },
     });
     for (const snapshot of snapshots) {
       verifiedIds.add(snapshot.officerId);
       result.set(snapshot.officerId, {
         rank1: snapshot.rank1,
         rank2: snapshot.rankCode,
-        rankSource: "DATABASE",
+        rankSource:
+          snapshot.officer.verificationStatus === "VERIFIED"
+            ? "VERIFIED_IMPORT"
+            : "DATABASE",
       });
     }
     if (!allowSource) continue;

@@ -572,6 +572,15 @@ tbody tr:hover {
   display: block;
   font-size: 13px;
 }
+.badge.verified {
+  background: #eaf7ef;
+  color: #23734a;
+}
+.officer-verification-badge {
+  display: block;
+  width: fit-content;
+  margin-top: 6px;
+}
 .rank-review-link {
   display: inline-block;
   margin-top: 6px;

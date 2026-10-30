@@ -68,6 +68,8 @@ export function permittedOfficerSelect(
     forceNumber: true,
     fullName: true,
     recordStatus: true,
+    verificationStatus: true,
+    verifiedAt: true,
     createdAt: true,
     updatedAt: true,
   };

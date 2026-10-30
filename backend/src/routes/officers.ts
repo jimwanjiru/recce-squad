@@ -221,7 +221,13 @@ export function officerRoutes(db: PrismaClient) {
               ],
             }
           : {}),
-        ...(q.recordStatus ? { recordStatus: q.recordStatus } : {}),
+        ...(q.recordStatus === "VERIFIED"
+          ? { verificationStatus: "VERIFIED" }
+          : q.recordStatus === "UNVERIFIED"
+            ? { recordStatus: "UNVERIFIED", verificationStatus: "UNVERIFIED" }
+            : q.recordStatus
+              ? { recordStatus: q.recordStatus }
+              : {}),
         ...(q.rankId
           ? { rankHistories: { some: { rankId: q.rankId, ...effective } } }
           : {}),
@@ -555,7 +561,13 @@ export function officerRoutes(db: PrismaClient) {
         await references(tx, data);
         await tx.officer.update({
           where: { id },
-          data: { ...data, version: { increment: 1 } },
+          data: {
+            ...data,
+            verificationStatus: "UNVERIFIED",
+            verifiedAt: null,
+            verifiedById: null,
+            version: { increment: 1 },
+          },
         });
         if (serviceProfile)
           await tx.officerServiceProfile.upsert({
@@ -570,6 +582,12 @@ export function officerRoutes(db: PrismaClient) {
           id,
           Object.keys(body).filter((x) => x !== "version"),
         );
+        if (current.verificationStatus === "VERIFIED")
+          await audit(tx, res, "OFFICER_DATA_VERIFICATION_RESET", id, [
+            "verificationStatus",
+            "verifiedAt",
+            "verifiedById",
+          ]);
         return tx.officer.findUniqueOrThrow({
           where: { id },
           select: readSelect(res),

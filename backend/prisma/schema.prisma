@@ -22,6 +22,10 @@ model Officer {
   dateEnlisted        DateTime?                   @db.Date
   phone               String?                     @db.VarChar(255)
   recordStatus        String                      @default("ACTIVE")
+  verificationStatus  String                      @default("UNVERIFIED")
+  verifiedAt          DateTime?
+  verifiedById        String?
+  verifiedBy          User? @relation("OfficerDataVerifier", fields: [verifiedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
   deletedAt           DateTime?
@@ -41,6 +45,7 @@ model Officer {
   examinations        OfficerExamination[]        @relation("OfficerExamination_officerId")
   changes             OfficerChange[]
   importRows          ImportRow[]                 @relation("ImportRow_officerId")
+  @@index([verificationStatus, deletedAt])
 }
 
 model OfficerServiceProfile {
@@ -359,6 +364,7 @@ model OfficerExamination {
 }
 
 model User {
+  verifiedOfficerData Officer[] @relation("OfficerDataVerifier")
   seededRankSnapshots OfficerRankSnapshot[]
   id                           String                  @id @default(cuid())
   name                         String

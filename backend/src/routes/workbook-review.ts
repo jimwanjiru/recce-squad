@@ -31,7 +31,12 @@ export function workbookReviewRoutes(db: PrismaClient) {
       const id = z.string().max(191).parse(req.params.id);
       const officer = await db.officer.findUnique({
         where: { id },
-        select: { forceNumber: true, fullName: true },
+        select: {
+          forceNumber: true,
+          fullName: true,
+          verificationStatus: true,
+          verifiedAt: true,
+        },
       });
       if (!officer) throw new HttpError(404, "OFFICER_NOT_FOUND");
       const rows = await db.importRow.findMany({
@@ -54,6 +59,7 @@ export function workbookReviewRoutes(db: PrismaClient) {
         const state = (saved?.settingValue || {}) as Record<string, any>;
         const fields = workbookColumns.flatMap(([label], index) => {
           const column = index + 1;
+          if (column === 1) return []; // Excel S/NO is not a personnel attribute.
           if (!canColumn(identity(res).grants, column, "view")) return [];
           return [
             {
@@ -74,6 +80,10 @@ export function workbookReviewRoutes(db: PrismaClient) {
           sheet: row.sheetName,
           row: row.rowNumber,
           fields,
+          officerVerification: {
+            status: officer.verificationStatus,
+            verifiedAt: officer.verifiedAt,
+          },
           identityCheck: {
             forceNumberMatches: true,
             nameMatches: sourceText(raw["6"]).trim() === officer.fullName,
@@ -101,6 +111,8 @@ export function workbookReviewRoutes(db: PrismaClient) {
         })
         .strict()
         .parse(req.body);
+      if (body.column === 1)
+        throw new HttpError(422, "SOURCE_SERIAL_NOT_PERSONNEL_FIELD");
       if (
         !canColumn(identity(res).grants, body.column, "view") ||
         !canColumn(identity(res).grants, body.column, "write")

@@ -86,6 +86,8 @@ export function message(error: unknown) {
       INVALID_CREDENTIALS: "The email or password is incorrect.",
       WORKBOOK_SOURCE_KEY_UNAVAILABLE_OR_INVALID:
         "The workbook source cannot be opened. Restore the matching .local/workbook-import.key from your protected backup.",
+      SOURCE_SERIAL_NOT_PERSONNEL_FIELD:
+        "Excel S/NO is a spreadsheet row label, not an officer field to verify.",
       APPROVER_EMAIL_EXISTS:
         "That email is already registered. Use the existing account or choose another approver email.",
       CHANGE_SOURCE_ALREADY_LINKED:
@@ -140,6 +142,8 @@ export type Officer = {
   forceNumber: string;
   fullName: string;
   recordStatus: string;
+  verificationStatus?: "UNVERIFIED" | "VERIFIED";
+  verifiedAt?: string | null;
   version: number;
   deletedAt: string | null;
   createdAt: string;
@@ -154,7 +158,8 @@ export type Officer = {
   dateEnlisted?: string | null;
   rank1?: string;
   rank2?: string;
-  rankSource?: "VERIFIED" | "DATABASE" | "WORKBOOK" | "UNRECORDED";
+  rankSource?:
+    "VERIFIED" | "VERIFIED_IMPORT" | "DATABASE" | "WORKBOOK" | "UNRECORDED";
   specialistDesignation?: string | null;
 };
 export type Option = {

@@ -356,7 +356,24 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
         "/api/officers/" + original.id + "/workbook-details",
       );
       assert.equal(source.status, 200);
-      assert.equal(source.body.data[0].fields.length, 38);
+      assert.equal(source.body.data[0].fields.length, 37);
+      assert(!source.body.data[0].fields.some((f: any) => f.column === 1));
+      assert.equal(
+        (
+          await agent
+            .post(
+              "/api/officers/" +
+                original.id +
+                "/workbook-details/" +
+                source.body.data[0].rowId +
+                "/review",
+            )
+            .set("Origin", "http://localhost:3000")
+            .set("X-CSRF-Token", login.body.data.csrfToken)
+            .send({ column: 1, decision: "CHECKED", expectedRevision: 0 })
+        ).status,
+        422,
+      );
       assert.equal(source.body.data[0].identityCheck.nameMatches, true);
       const sheetUrl =
         "/api/workbook-source?batchId=" + batch.id + "&sheet=CHANGES";

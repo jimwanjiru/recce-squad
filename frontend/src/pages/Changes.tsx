@@ -767,7 +767,19 @@ function ChangeDetails({
               </div>
               <div>
                 <dt>Personnel status</dt>
-                <dd>{current.recordStatus.replaceAll("_", " ")}</dd>
+                <dd>
+                  {current.recordStatus === "UNVERIFIED"
+                    ? "Not confirmed"
+                    : current.recordStatus.replaceAll("_", " ")}
+                </dd>
+              </div>
+              <div>
+                <dt>Officer data verification</dt>
+                <dd>
+                  {current.verificationStatus === "VERIFIED"
+                    ? "Verified"
+                    : "Awaiting verification"}
+                </dd>
               </div>
               <div>
                 <dt>Record state</dt>

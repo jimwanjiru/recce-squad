@@ -220,7 +220,7 @@ async function main() {
     );
     console.log(JSON.stringify(result, null, 2));
     console.log(
-      "Keep .local/workbook-import.key with protected backups. Imported officers are UNVERIFIED; no personnel policies or historical effective dates were activated.",
+      "Keep .local/workbook-import.key with protected backups. Import preserves existing verification decisions; use npm run db:verify:officers to approve imported officer data. No personnel policies or historical effective dates were activated.",
     );
   } finally {
     await db.$disconnect();

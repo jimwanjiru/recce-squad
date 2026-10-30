@@ -83,7 +83,7 @@ Fictional tests cover ambiguous dates, conflicting birth/enlistment chronology, 
 
 ## Review all original officer fields in the application
 
-After updating/building and starting the app, open an officer profile and select **Workbook details**. It displays all 38 NAMES columns with their original cached cell values, including fields not promoted into operational tables. The record is linked by import provenance and its source force number is checked against the officer on every read/review. A changed name is highlighted for comparison.
+After updating/building and starting the app, open an officer profile and select **Workbook details**. It displays the 37 NAMES personnel columns with their original cached cell values, including fields not promoted into operational tables. Excel S/NO (column A) is a spreadsheet row label: it is omitted from officer details and source-review controls, and is not an Officer table column. The original encrypted import retains the complete sheet for provenance. Force number identifies officers. A changed name is highlighted for comparison.
 
 Original source values also appear under the relevant profile sections: overview/demographics, service, ranks, assignments, courses, awards, education, examinations, discipline and financial information. These source blocks are labelled pending verification and retain the same backend field permissions. Recorded operational histories stay distinct from workbook narratives. The complete Workbook details tab and other-sheet source viewer remain available.
 

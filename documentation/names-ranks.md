@@ -31,3 +31,20 @@ The list labels snapshots **Imported rank**. This does not claim authoritative h
 ## Verify dated rank history when authoritative records are available
 
 For an officer who has no rank or movement history, open **Rank history → Verify initial rank**. An authorized reviewer selects the confirmed rank, enters its actual effective date, preserves any spelling/specialist designation, optionally records a document reference and confirms the evidence check. Blank, partial and future dates are rejected. The action records the reviewer and audit metadata; it does not verify other fields or activate a service-status policy. Existing histories cannot be replaced by this action; subsequent rank changes use Changes and independent approval.
+
+## Verify imported officer records in bulk
+
+Record verification is separate from service status and dated history. After the operator accepts an imported dataset, an authorized local administrator can mark its existing officers **VERIFIED**. This writes Officer.verificationStatus, verifiedAt and verifiedById, with per-officer and batch audit entries. It preserves transfers, retirement, suspension, archiving, source-field warnings and all historical dates. No workbook reimport is needed.
+
+Stop the app and update/build/migrate normally, then run:
+
+```cmd
+npm run db:verify:officers -- --batch YOUR_IMPORT_BATCH_ID --commit
+npm run local:start
+```
+
+Omit `--commit` for a read-only preview; use `--actor "your-login-email"` for a different administrator. The command reads the retained database source and matching `.local/workbook-import.key`. It checks operator permissions, source force-number identity and matching seeded rank provenance. Verification is restricted to officers linked to the selected import batch. Missing snapshots or identity conflicts stop the transaction without partial updates. Repeating verification preserves existing verification dates and does not duplicate audit entries.
+
+The list and profile show **Verified**, the rank note becomes **Verified imported rank**, and the Verified filter finds the approved records even if an officer is retired or transferred out. Individual source-field checks and unresolved dates stay separate. Editing an officer's data clears the record-verification stamp and audits that reset, so edited data requires a fresh acceptance. The legacy recordStatus field continues to retain personnel states; verificationStatus is the explicit data-approval field. Successful verification prevents automatic pristine-import rollback from deleting approved records.
+
+Excel S/NO is not an Officer database column. It is removed from personnel details and verification controls; only the original encrypted import copy retains it as part of the archived workbook.

@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import argon2 from "argon2";
 import { createDatabase } from "../../backend/src/config/database";
 import { permissions } from "../../backend/src/config/permissions";
+import { verifyOfficerImport } from "../../backend/src/services/verify-officer-import";
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
   throw Error("Dedicated test database required");
@@ -195,7 +196,7 @@ test("register, edit, search, archive and restore a fictional officer on desktop
       recordStatus: "UNVERIFIED",
     },
   });
-  await db.importRow.create({
+  const otherSource = await db.importRow.create({
     data: {
       batchId: batch.id,
       sheetName: "NAMES",
@@ -216,6 +217,16 @@ test("register, edit, search, archive and restore a fictional officer on desktop
       unresolvedDates: {},
       validationErrors: [],
       status: "CORE_IMPORTED_REVIEW_PENDING",
+    },
+  });
+  await db.officerRankSnapshot.create({
+    data: {
+      officerId: otherGroupOfficer.id,
+      sourceRowId: otherSource.id,
+      rank1: "PC",
+      rank2: "PC",
+      rankCode: "PC",
+      seededById: userId,
     },
   });
   await db.importBatch.update({
@@ -259,6 +270,7 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(
     page.getByText("Fictional Specialist Designation", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("Source serial", { exact: true })).toHaveCount(0);
   await expect(
     page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
   ).toBeVisible();
@@ -453,6 +465,29 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   ).toHaveCount(0);
   await expect(
     page.getByRole("table").getByText("Imported rank", { exact: true }),
+  ).toBeVisible();
+  const previousKey = process.env.WORKBOOK_IMPORT_KEY_PATH;
+  process.env.WORKBOOK_IMPORT_KEY_PATH = ".local/browser-source.key";
+  try {
+    await db.$transaction(
+      (tx) => verifyOfficerImport(tx, sourceBatchId, userId, true),
+      { timeout: 60000, isolationLevel: "ReadCommitted" },
+    );
+  } finally {
+    if (previousKey === undefined) delete process.env.WORKBOOK_IMPORT_KEY_PATH;
+    else process.env.WORKBOOK_IMPORT_KEY_PATH = previousKey;
+  }
+  await page.reload();
+  await page
+    .getByLabel("Verification filter", { exact: true })
+    .selectOption("VERIFIED");
+  await expect(
+    page
+      .getByRole("table")
+      .getByText("Verified imported rank", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("table").getByText("Verified", { exact: true }),
   ).toBeVisible();
   const nameCell = page.locator(".officer-name").first();
   expect((await nameCell.boundingBox())!.width).toBeGreaterThan(240);

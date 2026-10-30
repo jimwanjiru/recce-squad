@@ -17,7 +17,7 @@ import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import { Confirm, Empty, ErrorNotice, Loading } from "../components/shared";
 const sourceColumns: Record<string, number[]> = {
-  overview: [1, 2, 3, 6, 7, 8, 9, 10, 11, 24, 27, 32],
+  overview: [2, 3, 6, 7, 8, 9, 10, 11, 24, 27, 32],
   service: [11, 13, 22, 23, 31, 33, 34, 38],
   assignments: [13, 14, 16, 17, 19, 20, 35],
   ranks: [4, 5, 15, 30],
@@ -286,13 +286,24 @@ export function Profile() {
               <Hash size={14} />
               {o.forceNumber}
             </span>
-            <span className={`badge ${o.deletedAt ? "neutral" : "amber"}`}>
+            <span
+              className={`badge ${o.deletedAt ? "neutral" : o.verificationStatus === "VERIFIED" ? "verified" : "amber"}`}
+            >
               {o.deletedAt
                 ? "Archived"
                 : o.recordStatus === "UNVERIFIED"
-                  ? "Needs verification"
+                  ? o.verificationStatus === "VERIFIED"
+                    ? "Verified"
+                    : "Needs verification"
                   : o.recordStatus}
             </span>
+            {(o.deletedAt || o.recordStatus !== "UNVERIFIED") &&
+              o.verificationStatus === "VERIFIED" && (
+                <span className="badge verified">Verified</span>
+              )}
+            {o.verifiedAt && (
+              <span>Data verified {dateLabel(o.verifiedAt)}</span>
+            )}
           </div>
         </div>
         <div className="profile-actions">
@@ -449,7 +460,11 @@ export function Profile() {
               )}
               {can("fields.import_source.view") && (
                 <div style={{ marginTop: 24 }}>
-                  <h3>Workbook information — pending verification</h3>
+                  <h3>
+                    {o.verificationStatus === "VERIFIED"
+                      ? "Original workbook information"
+                      : "Workbook information — pending verification"}
+                  </h3>
                   <WorkbookDetails
                     key={tab}
                     id={id!}

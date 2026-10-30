@@ -256,6 +256,7 @@ export function Officers() {
           >
             <option value="">All record states</option>
             <option value="UNVERIFIED">Needs verification</option>
+            <option value="VERIFIED">Verified</option>
             {[
               "ACTIVE",
               "SUSPENDED",
@@ -482,9 +483,11 @@ export function Officers() {
                               ? "Workbook · awaiting verification"
                               : o.rankSource === "VERIFIED"
                                 ? "Verified current rank"
-                                : o.rankSource === "DATABASE"
-                                  ? "Imported rank"
-                                  : ""}
+                                : o.rankSource === "VERIFIED_IMPORT"
+                                  ? "Verified imported rank"
+                                  : o.rankSource === "DATABASE"
+                                    ? "Imported rank"
+                                    : ""}
                           </small>
                           {o.rankSource === "WORKBOOK" && (
                             <Link
@@ -499,14 +502,22 @@ export function Officers() {
                     )}
                     <td>
                       <span
-                        className={`badge ${o.deletedAt ? "neutral" : "amber"}`}
+                        className={`badge ${o.deletedAt ? "neutral" : o.verificationStatus === "VERIFIED" ? "verified" : "amber"}`}
                       >
                         {o.deletedAt
                           ? "Archived"
                           : o.recordStatus === "UNVERIFIED"
-                            ? "Needs verification"
+                            ? o.verificationStatus === "VERIFIED"
+                              ? "Verified"
+                              : "Needs verification"
                             : o.recordStatus}
                       </span>
+                      {(o.deletedAt || o.recordStatus !== "UNVERIFIED") &&
+                        o.verificationStatus === "VERIFIED" && (
+                          <span className="badge verified officer-verification-badge">
+                            Verified
+                          </span>
+                        )}
                     </td>
                     {columns.includes("payrollNumber") &&
                       can("fields.payroll_number.view") && (

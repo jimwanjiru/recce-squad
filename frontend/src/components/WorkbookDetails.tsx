@@ -11,6 +11,7 @@ type Review = {
   reviewedAt: string;
 };
 type SourceRow = {
+  officerVerification?: { status: string; verifiedAt: string | null };
   identityCheck: { forceNumberMatches: boolean; nameMatches: boolean };
   rowId: string;
   batchId: string;
@@ -149,9 +150,11 @@ export function WorkbookDetails({
   return (
     <div className="workbook-details">
       <p>
-        Original workbook information awaiting review. Checking a source field
-        records your review; official ranks, assignments and historical dates
-        require separate verified records.
+        {query.data.data.some(
+          (row) => row.officerVerification?.status === "VERIFIED",
+        )
+          ? "Officer data is verified. The retained source-field checks below and dated personnel histories are separate."
+          : "Original workbook information awaiting review. Checking a source field records your review; official ranks, assignments and historical dates require separate verified records."}
       </p>
       {(!columns || columns.includes(4) || columns.includes(5)) && (
         <p>
@@ -166,6 +169,16 @@ export function WorkbookDetails({
       )}
       {query.data.data.map((row) => (
         <section key={row.rowId}>
+          {row.officerVerification?.status === "VERIFIED" && (
+            <p className="notice success">
+              Officer data verified
+              {row.officerVerification.verifiedAt
+                ? " · " + reviewTime(row.officerVerification.verifiedAt)
+                : ""}
+              . Individual source-field checks and historical date verification
+              remain separate.
+            </p>
+          )}
           {!columns && <OtherSheets batchId={row.batchId} />}
           {!row.identityCheck.nameMatches && (
             <p role="alert">
@@ -197,7 +210,7 @@ export function WorkbookDetails({
                           : "Needs correction") +
                         " · " +
                         reviewTime(field.review.reviewedAt)
-                      : "Pending verification"}
+                      : "Source check pending"}
                   </p>
                   {field.canReview && (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

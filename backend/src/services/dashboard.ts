@@ -107,7 +107,11 @@ export async function dashboardSummary(
       db.officer.count({ where: serving }),
       db.officer.count({ where: { deletedAt: { not: null } } }),
       db.officer.count({
-        where: { deletedAt: null, recordStatus: "UNVERIFIED" },
+        where: {
+          deletedAt: null,
+          recordStatus: "UNVERIFIED",
+          verificationStatus: "UNVERIFIED",
+        },
       }),
       db.officer.count({
         where: { deletedAt: null, recordStatus: { in: serviceExitStatuses } },
