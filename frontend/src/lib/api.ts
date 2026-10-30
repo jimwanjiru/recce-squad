@@ -80,6 +80,8 @@ export function message(error: unknown) {
       INVALID_PARENT_UNIT: "Choose an active parent unit.",
       INACTIVE_PARENT_UNIT: "Reactivate the parent unit first.",
       INVALID_CREDENTIALS: "The email or password is incorrect.",
+      WORKBOOK_SOURCE_KEY_UNAVAILABLE_OR_INVALID:
+        "The workbook source cannot be opened. Restore the matching .local/workbook-import.key from your protected backup.",
       PERMISSION_DENIED: "You do not have permission for this action.",
       RECORD_CHANGED:
         "This record changed since you opened it. Refresh it before trying again.",

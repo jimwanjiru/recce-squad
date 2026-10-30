@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
+  LayoutDashboard,
   ShieldCheck,
   Users,
   Archive,
@@ -37,6 +38,22 @@ export function Layout() {
         </Link>
         <div className="sidebar-rule" />
         <p className="nav-label">PERSONNEL</p>
+        {[
+          "reports.view",
+          "officers.view",
+          "fields.import_source.view",
+          "fields.assignments.view",
+          "fields.service_profile.view",
+        ].every((permission) => can(permission)) && (
+          <Link
+            to="/dashboard"
+            className={`nav-item ${location.pathname === "/dashboard" ? "selected" : ""}`}
+            onClick={() => setOpen(false)}
+          >
+            <LayoutDashboard size={19} />
+            Dashboard
+          </Link>
+        )}
         {can("officers.view") && (
           <>
             <NavLink
@@ -117,11 +134,13 @@ export function Layout() {
           <div className="breadcrumb">
             Personnel <ChevronRight size={14} />
             <span>
-              {location.pathname === "/account"
-                ? "Account"
-                : location.pathname.startsWith("/organization")
-                  ? "Organization"
-                  : "Officers"}
+              {location.pathname === "/dashboard"
+                ? "Dashboard"
+                : location.pathname === "/account"
+                  ? "Account"
+                  : location.pathname.startsWith("/organization")
+                    ? "Organization"
+                    : "Officers"}
             </span>
           </div>
           <span className="session-badge">

@@ -23,6 +23,7 @@ The compiled frontend and backend share one Node.js server. Python, Bash, Docker
 
 Phase 4 organizational management builds on the React officer interface and secure Express/Prisma/MySQL backend. Manage ranks, rank spellings, unit hierarchies, sub-units, verified assignment baselines, deployments and externally approved staffing establishments. A [local workbook importer](documentation/workbook-import.md) now creates core officer records with encrypted source staging. Approval-based personnel movements, calculated reports, workbook export remain subsequent phases. Officer profiles include permission-filtered workbook details and a source-review checklist; the local importer also provides a guarded rollback command.
 
+- [Officer dashboard and workbook count definitions](documentation/dashboard.md)
 - [Updated schema and remaining decisions](documentation/schema-amendments.md)
 - [Complete Prisma schema](backend/prisma/schema.prisma)
 - [Relationships](documentation/relationships.md)

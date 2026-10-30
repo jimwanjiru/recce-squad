@@ -144,6 +144,21 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     },
   });
   sourceRowId = source.id;
+  await db.importRow.create({
+    data: {
+      batchId: batch.id,
+      sheetName: "SUB UNIT STRENGTH",
+      rowNumber: 8,
+      rawData: seal(
+        { 1: "MO", 37: { formula: 'COUNTIF(NAMES!T:T,"MO")', result: 99 } },
+        sourceKey,
+        `${tag}:SUB UNIT STRENGTH:8`,
+      ),
+      unresolvedDates: {},
+      validationErrors: [],
+      status: "SOURCE_ONLY",
+    },
+  });
   await page
     .getByRole("tab", { name: "Workbook details", exact: true })
     .click();
@@ -181,6 +196,38 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     .first()
     .click();
   await expect(page.getByText(/Source checked ·/)).toBeVisible();
+  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
+  ).toBeVisible();
+  const expectedRegisterTotal = await db.officer.count({
+    where: { deletedAt: null },
+  });
+  await expect(
+    page
+      .locator(".dashboard-stat")
+      .filter({ hasText: "Total officers" })
+      .locator("strong"),
+  ).toHaveText(expectedRegisterTotal.toLocaleString("en-GB"));
+  await expect(
+    page
+      .locator(".dashboard-group")
+      .filter({ hasText: "Main Office" })
+      .locator("strong"),
+  ).toHaveText("1");
+  await expect(
+    page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({ path: ".local/dashboard-layout.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/officers/" + sourceOfficerId);
+
   await page.getByRole("tab", { name: "Rank history", exact: true }).click();
   await expect(
     page.getByText("Fictional Specialist Designation", { exact: true }),

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "RECCE officers personnel management system",
   "scripts": {
-    "test": "node tools/design.test.cjs && node --test tools/mariadb-recovery.test.cjs tools/workbook-import.test.cjs && tsx backend/tests/unit.test.ts && tsx backend/tests/seniority.test.ts",
+    "test": "node tools/design.test.cjs && node --test tools/mariadb-recovery.test.cjs tools/workbook-import.test.cjs && tsx backend/tests/unit.test.ts && tsx backend/tests/seniority.test.ts && tsx backend/tests/dashboard.test.ts",
     "schema:validate": "node tools/validate-schema.cjs",
     "workbook:analyze": "node tools/analyze-workbook.cjs",
     "test:integration": "tsx backend/tests/integration.test.ts && tsx backend/tests/officers.test.ts && tsx backend/tests/organization.test.ts",

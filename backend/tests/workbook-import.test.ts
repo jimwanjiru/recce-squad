@@ -181,6 +181,54 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
           password: "Fictional-Import-Password-2026!",
         });
       assert.equal(login.status, 200);
+      const dashboard = await agent.get("/api/dashboard");
+      assert.equal(dashboard.status, 200);
+      assert.equal(dashboard.body.data.totalOfficers, baseline + 3);
+      assert.equal(dashboard.body.data.sourceLinked, 3);
+      assert.equal(dashboard.body.data.recce, 1);
+      const mainGroup = dashboard.body.data.groups.find(
+        (g: any) => g.code === "MO",
+      );
+      assert.equal(mainGroup.count, 1);
+      assert.equal(mainGroup.workbookCached, 99);
+      assert.equal(
+        dashboard.body.data.groups.reduce(
+          (sum: number, g: any) => sum + g.count,
+          0,
+        ),
+        3,
+      );
+      assert(
+        !JSON.stringify(dashboard.body).includes("Fictional Import Officer"),
+      );
+      assert(!JSON.stringify(dashboard.body).includes("ACCOUNT-SECRET"));
+      const savedOriginal = await db.officer.findUniqueOrThrow({
+        where: { id: original.id },
+      });
+      await db.officer.update({
+        where: { id: original.id },
+        data: { deletedAt: new Date() },
+      });
+      const archivedSummary = await agent.get("/api/dashboard");
+      assert.equal(archivedSummary.body.data.sourceLinked, 2);
+      assert.equal(archivedSummary.body.data.recce, 0);
+      await db.officer.update({
+        where: { id: original.id },
+        data: { deletedAt: null, updatedAt: savedOriginal.updatedAt },
+      });
+      const reportsPermission = await db.permission.findUniqueOrThrow({
+        where: { code: "reports.view" },
+      });
+      await db.rolePermission.delete({
+        where: {
+          roleId_permissionId: { roleId, permissionId: reportsPermission.id },
+        },
+      });
+      assert.equal((await agent.get("/api/dashboard")).status, 403);
+      await db.rolePermission.create({
+        data: { roleId, permissionId: reportsPermission.id },
+      });
+
       const source = await agent.get(
         "/api/officers/" + original.id + "/workbook-details",
       );

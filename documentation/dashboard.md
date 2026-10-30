@@ -1,0 +1,27 @@
+# Officer dashboard
+
+Open **Dashboard** in the sidebar, or `http://localhost:3000/dashboard`.
+
+The dashboard reads the workbook rows already stored by the real-workbook seeder. No reimport or schema migration is required for an existing complete import. Update the project while preserving `.env`, `.local` and `reference`, then run `npm run local:build` and restart with `npm run local:start`. The private `.local/workbook-import.key` must match the imported source rows.
+
+## Counts and group definitions
+
+- Total officers: current register records excluding archived records; no service-status eligibility is inferred. The page separately identifies unverified and archived records.
+- RECCE: linked officer source rows with R in the membership column, independently of disposition. It overlaps team membership and must not be added to the group totals.
+- Group breakdown: MO (Main Office), HQS, RRT, CRT, GP1–GP4, CTSO, SPEAR and NA. CRT is the confirmed workbook code; SRT in the original request was a typing error. NA means not applicable / not deployed to a team or group. Other and blank dispositions remain visible for reconciliation.
+
+Categories and source comparison come from the imported **SUB UNIT STRENGTH** worksheet. The register breakdown is recomputed from each linked NAMES row's disposition, with the source force number validated against its officer. Each officer is counted once. Archived officers and rolled-back batches are excluded. Officers without usable source rows remain in the register total and are explicitly counted as missing source coverage, not assigned to an invented group.
+
+Source data remains unverified until reviewed. These are register/source counts, not an approved operational strength calculation. They do not apply assumed retirement, absence, deployment or status-inclusion policies. They do not assert that a workbook placement is a verified current assignment.
+
+## Workbook comparison
+
+The comparison uses the latest retained import's SUB UNIT STRENGTH source rows. Column AK (37) supplies cached totals for each recognized group, the R row and the overall TOTAL row. Cached formula errors and absent values display **Unavailable**, never zero. Genuine zero is preserved. Workbook totals can differ because of cached values, erroneous/external formulas, source revisions, archive changes or missing coverage; differences are displayed for review, not silently corrected.
+
+The endpoint returns counts only, not names, identifiers, locations, bank details or decrypted rows. It requires `reports.view`, `officers.view`, `fields.import_source.view`, `fields.assignments.view` and `fields.service_profile.view`. Existing local administrators already have these catalog grants. The dashboard does not assign permissions automatically.
+
+One read-only repeatable-read transaction keeps each report's register totals and source counts consistent. Source rows are processed in bounded pages to limit memory on local computers. Refresh recalculates counts; no stale aggregate table or workbook formula engine is used. Source dates are import provenance, not claimed historical effective dates.
+
+## Validation
+
+Fictional tests verify count reconciliation, overlapping RECCE membership, archive exclusion, source mismatches, missing/error/zero cached totals and report-permission denial. MySQL and MariaDB integration tests cover the consistent-snapshot endpoint. Chromium tests verify the dashboard values and mobile layout without exposing source personal values. The original workbook was inspected offline for aggregate reconciliation; real officer records were not imported into cloud test databases.
