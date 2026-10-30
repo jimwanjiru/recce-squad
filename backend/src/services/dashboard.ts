@@ -1,4 +1,5 @@
 import { serviceExitStatuses } from "./changes-fields.js";
+import { currentPoliceRanks, overallRank } from "./ranks.js";
 import { businessDate } from "./history.js";
 import { PrismaClient } from "@prisma/client";
 import {
@@ -37,9 +38,7 @@ export const strengthRankColumns: Record<string, number> = {
   PC: 36,
 };
 export function sourceRank(value: unknown): string {
-  const label = sourceText(value).trim().toUpperCase();
-  const normalized = label === "C.I" || label === "C.I." ? "CI" : label;
-  return policeRanks.includes(normalized as any) ? normalized : "UNKNOWN";
+  return overallRank(value);
 }
 export const groupCodes = [
   "MO",
@@ -303,6 +302,7 @@ export async function dashboardSummary(
     }
   }
   return {
+    currentRankOrder: currentPoliceRanks,
     totalOfficers,
     archivedOfficers,
     formerOfficers,

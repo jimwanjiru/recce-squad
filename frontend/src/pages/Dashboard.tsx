@@ -24,6 +24,7 @@ type RankStrength = {
   differenceToEstablishment: number | null;
 };
 type Summary = {
+  currentRankOrder: string[];
   totalOfficers: number;
   archivedOfficers: number;
   formerOfficers: number;
@@ -77,7 +78,13 @@ function Analytics({ data }: { data: Summary }) {
     rankGroup === "RECCE"
       ? "RECCE membership"
       : rankFocus?.label || "All covered officers";
-  const filled = data.rankBreakdown
+  const currentRanks = data.currentRankOrder
+    .map((code) => data.rankBreakdown.find((r) => r.code === code)!)
+    .filter(Boolean);
+  const otherRanks = data.rankBreakdown.filter(
+    (r) => !data.currentRankOrder.includes(r.code),
+  );
+  const filled = [...currentRanks, ...otherRanks]
     .map((rank) => ({
       ...rank,
       count:
@@ -204,7 +211,13 @@ function Analytics({ data }: { data: Summary }) {
         <div className="rank-chart">
           {filled.map((rank) => (
             <div className="rank-chart-row" key={rank.code}>
-              <span>{rank.code === "UNKNOWN" ? "Unmapped" : rank.code}</span>
+              <span>
+                {rank.code === "UNKNOWN"
+                  ? "Unmapped"
+                  : data.currentRankOrder.includes(rank.code)
+                    ? rank.code
+                    : `${rank.code} (outside current order)`}
+              </span>
               <div className="rank-chart-track">
                 <i style={{ width: (100 * rank.count) / maximum + "%" }} />
               </div>

@@ -153,6 +153,13 @@ export function WorkbookDetails({
         records your review; official ranks, assignments and historical dates
         require separate verified records.
       </p>
+      {(!columns || columns.includes(4) || columns.includes(5)) && (
+        <p>
+          Rank 1 preserves the full rank, specification and specialization, such
+          as Cpl/Drv or C.I(W). Rank 2 is the overall rank used for grouping:
+          Cpl/Drv and Cpl both belong to CPL. CP is a separate rank.
+        </p>
+      )}
       {review.error && <ErrorNotice error={review.error} />}
       {!query.data.data.length && (
         <p>No linked workbook source is available for this officer.</p>

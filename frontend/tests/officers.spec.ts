@@ -87,6 +87,26 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(
     page.getByRole("heading", { name: "Officers", exact: true }),
   ).toBeVisible();
+  await expect(page.getByLabel("Officer order", { exact: true })).toHaveValue(
+    "rank",
+  );
+  await expect(
+    page.getByLabel("Rank filter", { exact: true }).locator("option"),
+  ).toHaveText([
+    "All ranks",
+    "AIG",
+    "CP",
+    "SSP",
+    "SP",
+    "ASP",
+    "CI",
+    "IP",
+    "S/SGT",
+    "SGT",
+    "CPL",
+    "PC",
+    "Unmapped / not recorded",
+  ]);
   await page
     .getByRole("link", { name: "Register officer", exact: true })
     .click();
@@ -386,6 +406,28 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     ),
   ).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/officers");
+  await expect(
+    page.getByRole("columnheader", {
+      name: "Rank 1 · rank / specialization",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", {
+      name: "Rank 2 · overall rank",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByLabel("Rank filter", { exact: true }).selectOption("CI");
+  await expect(
+    page
+      .getByRole("table")
+      .getByText("Fictional Specialist Designation", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("table").getByText("PC", { exact: true }),
+  ).toHaveCount(0);
   await page.goto("/officers/" + sourceOfficerId);
 
   await page.getByRole("tab", { name: "Rank history", exact: true }).click();

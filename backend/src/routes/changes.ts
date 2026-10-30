@@ -1,4 +1,5 @@
 import { policeRanks, groupCodes, groupLabels } from "../services/dashboard.js";
+import { currentRankReferences } from "../services/ranks.js";
 import argon2 from "argon2";
 import { sensitiveFields } from "../config/permissions.js";
 import { Router, Request, Response, NextFunction } from "express";
@@ -413,7 +414,7 @@ export function changesRoutes(db: PrismaClient) {
           years,
           units,
           subUnits,
-          ranks,
+          ranks: currentRankReferences(ranks),
           canCreate:
             changePermission(actor(res).grants, "write") &&
             actor(res).grants.has("movements.create"),

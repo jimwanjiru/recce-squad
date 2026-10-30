@@ -29,7 +29,7 @@ Fictional tests verify count reconciliation, overlapping RECCE membership, archi
 
 ## Police-rank strength and establishment comparison
 
-The rank order is user-confirmed: **S/AIG, AIG, CP, SSP, SP, ASP, CI, IP, RSM, S/SGT, SGT, CPL, PC**. The dashboard now includes:
+The historical worksheet comparison retains **S/AIG, AIG, CP, SSP, SP, ASP, CI, IP, RSM, S/SGT, SGT, CPL, PC** and their original source-column mappings. Current NAMES displays, rank filters and rank composition use the user-confirmed order **AIG, CP, SSP, SP, ASP, CI, IP, S/SGT, SGT, CPL, PC**. S/AIG and RSM remain in the historical comparison. Other recorded ranks are retained outside the current display order rather than silently placed into a different rank. The dashboard includes:
 
 - A sub-unit-by-rank matrix, following the worksheet's rank-column layout. All requested ranks appear even when their register count is zero. RECCE is a separate membership summary; the group rows and the workbook-linked total reconcile independently.
 - A rank comparison table with register count, RECCE count, workbook current strength, source establishment and the arithmetic gap to source establishment. Positive means fewer register officers than the source input; negative means more. The source establishment is an unverified workbook input, not a newly activated dated RankEstablishment rule.

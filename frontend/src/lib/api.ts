@@ -148,6 +148,10 @@ export type Officer = {
   ethnicityId?: string | null;
   phone?: string | null;
   dateEnlisted?: string | null;
+  rank1?: string;
+  rank2?: string;
+  rankSource?: "VERIFIED" | "WORKBOOK" | "UNRECORDED";
+  specialistDesignation?: string | null;
 };
 export type Option = {
   id: string;
@@ -157,6 +161,7 @@ export type Option = {
 };
 export type Options = {
   ranks: Option[];
+  rankGroups?: string[];
   units: Option[];
   subUnits: Option[];
   counties: Option[];

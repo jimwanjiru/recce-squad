@@ -8,6 +8,7 @@ import {
 } from "./workbook-source.js";
 import { compareSeniority } from "./seniority.js";
 import { businessDate } from "./history.js";
+import { currentPoliceRanks } from "./ranks.js";
 export const rosterPermissions = [
   "organization.view",
   "officers.view",
@@ -34,6 +35,7 @@ export async function groupRoster(
     fullName: string;
     rank: string;
     originalRank: string;
+    specialistDesignation: string | null;
     group: string;
     isRecce: boolean;
     recordStatus: string;
@@ -73,7 +75,11 @@ export async function groupRoster(
             recordStatus: true,
             rankHistories: {
               where: effective,
-              select: { rank: { select: { code: true } } },
+              select: {
+                originalRankSpelling: true,
+                specialistDesignation: true,
+                rank: { select: { code: true } },
+              },
               take: 1,
             },
             assignments: {
@@ -146,7 +152,12 @@ export async function groupRoster(
         fullName: officer.fullName,
         recordStatus: officer.recordStatus,
         rank,
-        originalRank: sourceText(raw["4"]),
+        originalRank:
+          officer.rankHistories[0]?.originalRankSpelling ||
+          officer.rankHistories[0]?.rank.code ||
+          sourceText(raw["4"]),
+        specialistDesignation:
+          officer.rankHistories[0]?.specialistDesignation || null,
         group,
         isRecce,
         verifiedRank: officer.rankHistories[0]?.rank.code || null,
@@ -177,7 +188,11 @@ export async function groupRoster(
       recordStatus: true,
       rankHistories: {
         where: effective,
-        select: { rank: { select: { code: true } } },
+        select: {
+          originalRankSpelling: true,
+          specialistDesignation: true,
+          rank: { select: { code: true } },
+        },
         take: 1,
       },
       assignments: {
@@ -229,7 +244,12 @@ export async function groupRoster(
       forceNumber: officer.forceNumber,
       fullName: officer.fullName,
       rank,
-      originalRank: "",
+      originalRank:
+        officer.rankHistories[0]?.originalRankSpelling ||
+        officer.rankHistories[0]?.rank.code ||
+        "",
+      specialistDesignation:
+        officer.rankHistories[0]?.specialistDesignation || null,
       group,
       isRecce,
       recordStatus: officer.recordStatus,
@@ -250,6 +270,7 @@ export async function groupRoster(
     })),
   ];
   return {
+    rankOrder: currentPoliceRanks,
     data: matches.slice(
       (query.page - 1) * query.pageSize,
       query.page * query.pageSize,

@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  currentPoliceRanks,
+  overallRank,
+  sortRankReferences,
+} from "../src/services/ranks.js";
+import {
   policeRanks,
   sourceRank,
   strengthRankColumns,
@@ -26,7 +31,7 @@ test("cached workbook errors and missing totals are unavailable, while real zero
   assert.equal(cachedNumber(12), 12);
 });
 
-test("all 13 police ranks follow the confirmed order and preserve unmapped specialist source values", () => {
+test("historical strength retains all 13 source ranks and preserves unmapped specialist source values", () => {
   assert.deepEqual(policeRanks, [
     "S/AIG",
     "AIG",
@@ -49,4 +54,32 @@ test("all 13 police ranks follow the confirmed order and preserve unmapped speci
   assert.equal(sourceRank(""), "UNKNOWN");
   assert.equal(strengthRankColumns["RSM"], 24);
   assert.equal(strengthRankColumns["PC"], 36);
+});
+
+test("current rank order is independent of specialist spelling and historical strength columns", () => {
+  assert.deepEqual(currentPoliceRanks, [
+    "AIG",
+    "CP",
+    "SSP",
+    "SP",
+    "ASP",
+    "CI",
+    "IP",
+    "S/SGT",
+    "SGT",
+    "CPL",
+    "PC",
+  ]);
+  assert.equal(overallRank("ASP."), "ASP");
+  assert.equal(overallRank("C.I."), "CI");
+  assert.notEqual(overallRank("CP"), overallRank("Cpl"));
+  assert.equal(overallRank("Cpl/Drv"), "UNKNOWN"); // Rank 2, not arbitrary Rank 1 text, is authoritative.
+  assert.deepEqual(
+    sortRankReferences([
+      { code: "PC", hierarchyLevel: 1 },
+      { code: "CP", hierarchyLevel: 99 },
+      { code: "CPL", hierarchyLevel: 2 },
+    ]).map((r) => r.code),
+    ["CP", "CPL", "PC"],
+  );
 });

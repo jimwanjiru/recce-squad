@@ -1,4 +1,11 @@
 import { compareSeniority } from "../services/seniority.js";
+import {
+  currentPoliceRanks,
+  rankPosition,
+  currentRankReferences,
+  officerRanks,
+  OfficerRanks,
+} from "../services/ranks.js";
 import { Router, Request, Response, NextFunction } from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
@@ -29,6 +36,7 @@ const need = (res: Response, permission: string) => {
 const readSelect = (res: Response) => ({
   ...permittedOfficerSelect(actor(res).grants),
   id: true,
+  forceNumber: true,
   dateEnlisted: actor(res).grants.has("fields.date_enlisted.view"),
   version: true,
   deletedAt: true,
@@ -156,7 +164,16 @@ export function officerRoutes(db: PrismaClient) {
             : [],
         ],
       );
-      res.json({ data: { ranks, units, subUnits, counties, ethnicities } });
+      res.json({
+        data: {
+          ranks: currentRankReferences(ranks),
+          rankGroups: allowed("rankHistories") ? currentPoliceRanks : [],
+          units,
+          subUnits,
+          counties,
+          ethnicities,
+        },
+      });
     }),
   );
   router.get(
@@ -170,16 +187,19 @@ export function officerRoutes(db: PrismaClient) {
           q: z.string().max(100).optional(),
           archive: z.enum(["active", "archived", "all"]).default("active"),
           sort: z
-            .enum(["seniority", "fullName", "forceNumber", "createdAt"])
+            .enum(["seniority", "rank", "fullName", "forceNumber", "createdAt"])
             .default("seniority"),
           direction: z.enum(["asc", "desc"]).default("asc"),
           recordStatus: z.string().max(50).optional(),
           rankId: z.string().max(191).optional(),
+          rank: z.enum([...currentPoliceRanks, "UNKNOWN"]).optional(),
           subUnitId: z.string().max(191).optional(),
         })
         .strict()
         .parse(req.query);
       if (q.rankId) need(res, fieldPermission("rankHistories", "view"));
+      if (q.rank || q.sort === "rank")
+        need(res, fieldPermission("rankHistories", "view"));
       if (q.subUnitId) need(res, fieldPermission("assignments", "view"));
       const today = new Date(businessDate() + "T00:00:00Z");
       const effective = {
@@ -212,38 +232,94 @@ export function officerRoutes(db: PrismaClient) {
             }
           : {}),
       };
+      const canReadRanks = actor(res).grants.has(
+        fieldPermission("rankHistories", "view"),
+      );
+      const allowSourceRanks = actor(res).grants.has(
+        fieldPermission("importRows", "view"),
+      );
+      let resolvedRanks: Map<string, OfficerRanks> | undefined;
       const [data, total] =
-        q.sort === "seniority"
-          ? await db.$transaction(async (tx) => {
-              const candidates = await tx.officer.findMany({
-                where,
-                select: { id: true, forceNumber: true },
-              });
-              candidates.sort((a, b) => compareSeniority(a, b));
-              // CO stays first; descending reverses the remaining officer ordering only.
-              if (q.direction === "desc") {
-                const co = candidates.find(
-                  (o) => o.forceNumber === process.env.CO_FORCE_NUMBER,
+        q.sort === "seniority" || q.sort === "rank" || q.rank
+          ? await db.$transaction(
+              async (tx) => {
+                let candidates = await tx.officer.findMany({
+                  where,
+                  select: {
+                    id: true,
+                    forceNumber: true,
+                    fullName: true,
+                    createdAt: true,
+                  },
+                });
+                if (q.sort === "rank" || q.rank) {
+                  resolvedRanks = await officerRanks(
+                    tx,
+                    candidates,
+                    allowSourceRanks,
+                  );
+                  if (q.rank)
+                    candidates = candidates.filter(
+                      (o) => resolvedRanks!.get(o.id)?.rank2 === q.rank,
+                    );
+                }
+                candidates.sort((a, b) => {
+                  if (q.sort === "rank") {
+                    const ap = rankPosition(resolvedRanks!.get(a.id)!.rank2),
+                      bp = rankPosition(resolvedRanks!.get(b.id)!.rank2);
+                    // Unmapped and historical-only ranks stay outside the current hierarchy.
+                    if (
+                      ap === currentPoliceRanks.length ||
+                      bp === currentPoliceRanks.length
+                    )
+                      return ap - bp || compareSeniority(a, b);
+                    return (
+                      (ap - bp) * (q.direction === "desc" ? -1 : 1) ||
+                      compareSeniority(a, b)
+                    );
+                  }
+                  if (q.sort === "fullName" || q.sort === "forceNumber")
+                    return (
+                      a[q.sort].localeCompare(b[q.sort]) *
+                        (q.direction === "desc" ? -1 : 1) ||
+                      a.id.localeCompare(b.id)
+                    );
+                  if (q.sort === "createdAt")
+                    return (
+                      (+a.createdAt - +b.createdAt) *
+                        (q.direction === "desc" ? -1 : 1) ||
+                      a.id.localeCompare(b.id)
+                    );
+                  return compareSeniority(a, b);
+                });
+                // CO stays first; descending reverses the remaining officer ordering only.
+                if (q.sort === "seniority" && q.direction === "desc") {
+                  const co = candidates.find(
+                    (o) => o.forceNumber === process.env.CO_FORCE_NUMBER,
+                  );
+                  const rest = candidates.filter((o) => o !== co).reverse();
+                  candidates.splice(
+                    0,
+                    candidates.length,
+                    ...(co ? [co, ...rest] : rest),
+                  );
+                }
+                const page = candidates.slice(
+                  (q.page - 1) * q.pageSize,
+                  q.page * q.pageSize,
                 );
-                const rest = candidates.filter((o) => o !== co).reverse();
-                candidates.splice(
-                  0,
-                  candidates.length,
-                  ...(co ? [co, ...rest] : rest),
+                const rows = await tx.officer.findMany({
+                  where: { id: { in: page.map((o) => o.id) } },
+                  select: readSelect(res),
+                });
+                const positions = new Map(page.map((o, i) => [o.id, i]));
+                rows.sort(
+                  (a, b) => positions.get(a.id)! - positions.get(b.id)!,
                 );
-              }
-              const page = candidates.slice(
-                (q.page - 1) * q.pageSize,
-                q.page * q.pageSize,
-              );
-              const rows = await tx.officer.findMany({
-                where: { id: { in: page.map((o) => o.id) } },
-                select: readSelect(res),
-              });
-              const positions = new Map(page.map((o, i) => [o.id, i]));
-              rows.sort((a, b) => positions.get(a.id)! - positions.get(b.id)!);
-              return [rows, candidates.length] as const;
-            })
+                return [rows, candidates.length] as const;
+              },
+              { timeout: 60000 },
+            )
           : await db.$transaction([
               db.officer.findMany({
                 where,
@@ -254,7 +330,18 @@ export function officerRoutes(db: PrismaClient) {
               }),
               db.officer.count({ where }),
             ]);
-      res.json({ data, meta: { total, page: q.page, pageSize: q.pageSize } });
+      if (canReadRanks && !resolvedRanks)
+        resolvedRanks = await officerRanks(
+          db,
+          data as { id: string; forceNumber: string }[],
+          allowSourceRanks,
+        );
+      res.json({
+        data: canReadRanks
+          ? data.map((o) => ({ ...o, ...resolvedRanks?.get(o.id as string) }))
+          : data,
+        meta: { total, page: q.page, pageSize: q.pageSize },
+      });
     }),
   );
   router.post(

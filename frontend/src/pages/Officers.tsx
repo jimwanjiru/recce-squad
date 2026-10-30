@@ -24,7 +24,9 @@ export function Officers() {
   const archive = params.get("archive") === "archived" ? "archived" : "active";
   const [search, setSearch] = useState(params.get("q") ?? "");
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState("seniority");
+  const [sort, setSort] = useState(
+    can("fields.rank_history.view") ? "rank" : "seniority",
+  );
   const [direction, setDirection] = useState("asc");
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState(false);
@@ -65,6 +67,7 @@ export function Officers() {
     setPage(1);
     setParams((previous) => {
       const next = new URLSearchParams(previous);
+      if (key === "rank") next.delete("rankId");
       if (value) next.set(key, value);
       else next.delete(key);
       return next;
@@ -78,6 +81,7 @@ export function Officers() {
     direction,
     ...(params.get("q") ? { q: params.get("q")! } : {}),
     ...(params.get("rankId") ? { rankId: params.get("rankId")! } : {}),
+    ...(params.get("rank") ? { rank: params.get("rank")! } : {}),
     ...(params.get("subUnitId") ? { subUnitId: params.get("subUnitId")! } : {}),
     ...(params.get("recordStatus")
       ? { recordStatus: params.get("recordStatus")! }
@@ -238,6 +242,9 @@ export function Officers() {
             }}
           >
             <option value="seniority">Seniority (CO first)</option>
+            {can("fields.rank_history.view") && (
+              <option value="rank">Rank (highest first)</option>
+            )}
             <option value="fullName">Name</option>
             <option value="forceNumber">Force number</option>
             <option value="createdAt">Date added</option>
@@ -267,16 +274,17 @@ export function Officers() {
           {can("fields.rank_history.view") && (
             <select
               aria-label="Rank filter"
-              value={params.get("rankId") ?? ""}
-              onChange={(e) => setFilter("rankId", e.target.value)}
-              disabled={!options.data?.data.ranks.length}
+              value={params.get("rank") ?? ""}
+              onChange={(e) => setFilter("rank", e.target.value)}
+              disabled={!options.data?.data.rankGroups?.length}
             >
               <option value="">All ranks</option>
-              {options.data?.data.ranks.map((rank) => (
-                <option key={rank.id} value={rank.id}>
-                  {rank.code} · {rank.name}
+              {options.data?.data.rankGroups?.map((rank) => (
+                <option key={rank} value={rank}>
+                  {rank}
                 </option>
               ))}
+              <option value="UNKNOWN">Unmapped / not recorded</option>
             </select>
           )}
           {can("fields.assignments.view") && (
@@ -368,6 +376,12 @@ export function Officers() {
                       Force number <ArrowUpDown size={13} />
                     </button>
                   </th>
+                  {can("fields.rank_history.view") && (
+                    <>
+                      <th>Rank 1 · rank / specialization</th>
+                      <th>Rank 2 · overall rank</th>
+                    </>
+                  )}
                   <th>Record state</th>
                   {columns.includes("payrollNumber") &&
                     can("fields.payroll_number.view") && (
@@ -425,6 +439,30 @@ export function Officers() {
                     <td className="mono" title={o.forceNumber}>
                       {o.forceNumber}
                     </td>
+                    {can("fields.rank_history.view") && (
+                      <>
+                        <td>
+                          {o.rank1 || "—"}
+                          {o.specialistDesignation && (
+                            <small className="roster-source-label">
+                              {o.specialistDesignation}
+                            </small>
+                          )}
+                        </td>
+                        <td>
+                          {o.rank2 === "UNKNOWN"
+                            ? "Not recorded / unmapped"
+                            : o.rank2 || "—"}
+                          <small className="roster-source-label">
+                            {o.rankSource === "WORKBOOK"
+                              ? "Workbook · awaiting verification"
+                              : o.rankSource === "VERIFIED"
+                                ? "Verified current rank"
+                                : ""}
+                          </small>
+                        </td>
+                      </>
+                    )}
                     <td>
                       <span
                         className={`badge ${o.deletedAt ? "neutral" : "amber"}`}

@@ -2,6 +2,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { organizationLock } from "../services/organization-lock.js";
+import {
+  sortRankReferences,
+  currentRankReferences,
+} from "../services/ranks.js";
 import { HttpError } from "../services/errors.js";
 import {
   officerTransaction,
@@ -138,7 +142,9 @@ export function organizationRoutes(db: PrismaClient) {
           orderBy: { name: "asc" },
         }),
       ]);
-      res.json({ data: { ranks, units, subUnits } });
+      res.json({
+        data: { ranks: currentRankReferences(ranks), units, subUnits },
+      });
     }),
   );
 
@@ -156,15 +162,11 @@ export function organizationRoutes(db: PrismaClient) {
         };
         let data: unknown, total: number;
         if (kind === "ranks") {
-          [data, total] = await db.$transaction([
-            db.rank.findMany({
-              ...pageArgs(q),
-              where,
-              include: { aliases: true },
-              orderBy: [{ hierarchyLevel: "asc" }, { id: "asc" }],
-            }),
-            db.rank.count({ where }),
-          ]);
+          const ranks = sortRankReferences(
+            await db.rank.findMany({ where, include: { aliases: true } }),
+          );
+          total = ranks.length;
+          data = ranks.slice((q.page - 1) * q.pageSize, q.page * q.pageSize);
         } else if (kind === "units") {
           [data, total] = await db.$transaction([
             db.unit.findMany({

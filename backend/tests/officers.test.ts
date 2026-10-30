@@ -3,7 +3,11 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import argon2 from "argon2";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+import { seal } from "../../tools/workbook-import-data.cjs";
 import { createDatabase } from "../src/config/database.js";
 import { createApp } from "../src/app.js";
 import { permissions } from "../src/config/permissions.js";
@@ -29,6 +33,7 @@ let app: Awaited<ReturnType<typeof createApp>>,
   countyId: string,
   roleId: string;
 let officerId: string;
+let rankBatchId: string | undefined;
 before(async () => {
   app = await createApp(db, { origin, production: false });
   const passwordHash = await argon2.hash(password);
@@ -100,6 +105,10 @@ after(async () => {
     select: { id: true },
   });
   const ids = officers.map((o) => o.id);
+  if (rankBatchId) {
+    await db.importRow.deleteMany({ where: { batchId: rankBatchId } });
+    await db.importBatch.delete({ where: { id: rankBatchId } });
+  }
   await db.officerRankHistory.deleteMany({ where: { officerId: { in: ids } } });
   await db.officerAssignment.deleteMany({ where: { officerId: { in: ids } } });
   await db.officerServiceProfile.deleteMany({
@@ -354,4 +363,105 @@ test("audit logs record changed field names without sensitive values", async () 
   const serialized = JSON.stringify(logs);
   for (const secret of ["00000123", "000-TEST", "Fictional Officer Updated"])
     assert(!serialized.includes(secret));
+});
+
+test("NAMES ranks preserve specifications, group CPL separately from CP, paginate after rank sorting and respect field permissions", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "recce-ranks-"));
+  const previousKey = process.env.WORKBOOK_IMPORT_KEY_PATH;
+  const key = randomBytes(32);
+  process.env.WORKBOOK_IMPORT_KEY_PATH = path.join(dir, "source.key");
+  await writeFile(process.env.WORKBOOK_IMPORT_KEY_PATH, key);
+  try {
+    const sha = tag + "-ranks";
+    rankBatchId = (
+      await db.importBatch.create({
+        data: {
+          filename: "Fictional rank fixture",
+          fileSha256: sha,
+          uploadedById: adminId,
+        },
+      })
+    ).id;
+    const sourceRanks = [
+      ["CP", "CP"],
+      ["Cpl/Drv", "Cpl"],
+      ["Cpl", "Cpl"],
+      ["PC(W)/Sig", "PC"],
+    ];
+    for (const [index, [rank1, rank2]] of sourceRanks.entries()) {
+      const force = `${tag}-ranks-${index}`;
+      const officer = await db.officer.create({
+        data: {
+          forceNumber: force,
+          fullName: "Fictional rank grouping fixture",
+        },
+      });
+      await db.importRow.create({
+        data: {
+          batchId: rankBatchId,
+          officerId: officer.id,
+          sheetName: "NAMES",
+          rowNumber: index + 2,
+          rawData: seal(
+            { 2: force, 4: rank1, 5: rank2 },
+            key,
+            `${sha}:NAMES:${index + 2}`,
+          ),
+          unresolvedDates: {},
+          validationErrors: [],
+        },
+      });
+    }
+    const query = `/api/officers?q=${encodeURIComponent(sha)}&sort=rank`;
+    const sorted = (await admin.get(query).expect(200)).body;
+    assert.deepEqual(
+      sorted.data.map((o: any) => o.rank2),
+      ["CP", "CPL", "CPL", "PC"],
+    );
+    assert.equal(sorted.data[1].rank1, "Cpl/Drv");
+    assert.equal(sorted.data[3].rank1, "PC(W)/Sig");
+    const page = (
+      await admin.get(query + "&rank=CPL&pageSize=1&page=1").expect(200)
+    ).body;
+    assert.equal(page.meta.total, 2);
+    assert.equal(page.data.length, 1);
+    assert.equal(page.data[0].rank1, "Cpl/Drv");
+    const reverse = (
+      await admin.get(query + "&direction=desc&pageSize=1").expect(200)
+    ).body;
+    assert.equal(reverse.data[0].rank2, "PC");
+    const driverId = page.data[0].id;
+    await db.officerRankHistory.create({
+      data: {
+        officerId: driverId,
+        rankId,
+        effectiveFrom: new Date("2020-01-01"),
+        datesVerifiedAt: new Date(),
+        datesVerifiedById: adminId,
+        originalRankSpelling: "Fictional verified rank",
+        specialistDesignation: "Fictional specialist",
+      },
+    });
+    const promoted = (
+      await admin
+        .get(`/api/officers?q=${encodeURIComponent(sha)}&sort=rank`)
+        .expect(200)
+    ).body.data.find((o: any) => o.id === driverId);
+    assert.equal(promoted.rankSource, "VERIFIED");
+    assert.equal(promoted.rank1, "Fictional verified rank");
+    assert.equal(promoted.specialistDesignation, "Fictional specialist");
+    assert.equal(
+      (await admin.get(query + "&rank=CPL").expect(200)).body.meta.total,
+      1,
+    );
+    await reader.get(query).expect(403);
+    const restricted = (
+      await reader.get(`/api/officers?q=${encodeURIComponent(sha)}`).expect(200)
+    ).body.data;
+    assert(restricted.every((o: any) => !("rank1" in o) && !("rank2" in o)));
+  } finally {
+    if (previousKey === undefined) delete process.env.WORKBOOK_IMPORT_KEY_PATH;
+    else process.env.WORKBOOK_IMPORT_KEY_PATH = previousKey;
+    await rm(dir, { recursive: true, force: true });
+  }
 });

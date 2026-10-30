@@ -210,7 +210,7 @@ export function OfficerForm() {
   const choice = (
     name: "countyId" | "ethnicityId" | "rankId" | "unitId" | "subUnitId",
     label: string,
-    list: Options[keyof Options],
+    list: Options["ranks"],
   ) => (
     <div className="form-field">
       <label htmlFor={name}>{label}</label>

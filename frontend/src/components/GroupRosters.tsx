@@ -6,34 +6,20 @@ import { api } from "../lib/api";
 import { Button } from "./ui/button";
 import { Pagination } from "./Pagination";
 import { Loading, ErrorNotice } from "./shared";
-const ranks = [
-  "S/AIG",
-  "AIG",
-  "CP",
-  "SSP",
-  "SP",
-  "ASP",
-  "CI",
-  "IP",
-  "RSM",
-  "S/SGT",
-  "SGT",
-  "CPL",
-  "PC",
-  "UNKNOWN",
-];
 type Roster = {
   id: string;
   forceNumber: string;
   fullName: string;
   rank: string;
   originalRank: string;
+  specialistDesignation?: string | null;
   group: string;
   recordStatus: string;
   verifiedRank: string | null;
   verifiedGroup: string | null;
 };
 type Result = {
+  rankOrder: string[];
   data: Roster[];
   groups: { code: string; label: string; count: number }[];
   meta: {
@@ -133,7 +119,7 @@ export function GroupRosters() {
             onChange={(e) => change({ rank: e.target.value, page: "1" })}
           >
             <option value="">All ranks</option>
-            {ranks.map((r) => (
+            {[...(result.data?.rankOrder || []), "UNKNOWN"].map((r) => (
               <option key={r} value={r}>
                 {r === "UNKNOWN" ? "Unmapped rank" : r}
               </option>
@@ -152,7 +138,8 @@ export function GroupRosters() {
                   <tr>
                     <th>Force number</th>
                     <th>Officer</th>
-                    <th>Current / source rank</th>
+                    <th>Rank 1 · rank / specialization</th>
+                    <th>Rank 2 · overall rank</th>
                     <th>Current / source sub-unit</th>
                     <th>Verified record</th>
                   </tr>
@@ -170,17 +157,19 @@ export function GroupRosters() {
                         </Link>
                       </td>
                       <td>
+                        {officer.originalRank || officer.verifiedRank || "—"}
+                        {officer.specialistDesignation && (
+                          <small className="roster-source-label">
+                            {officer.specialistDesignation}
+                          </small>
+                        )}
+                      </td>
+                      <td>
                         <strong>
                           {officer.rank === "UNKNOWN"
                             ? "Unmapped"
                             : officer.rank}
                         </strong>
-                        {officer.originalRank &&
-                          officer.originalRank !== officer.rank && (
-                            <small className="roster-source-label">
-                              Source: {officer.originalRank}
-                            </small>
-                          )}
                       </td>
                       <td>
                         {result.data.groups.find(
