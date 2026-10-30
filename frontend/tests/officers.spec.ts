@@ -154,6 +154,19 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     .first()
     .click();
   await expect(page.getByText(/Source checked ·/)).toBeVisible();
+  await page.getByRole("tab", { name: "Rank history", exact: true }).click();
+  await expect(
+    page.getByText("Fictional Specialist Designation", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("tab", { name: "Financial information", exact: true })
+    .click();
+  await expect(
+    page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("tab", { name: "Overview", exact: true }).click();
 
   await page.getByRole("link", { name: "Edit record" }).click();

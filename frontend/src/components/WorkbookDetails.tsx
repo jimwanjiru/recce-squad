@@ -106,10 +106,17 @@ function OtherSheets({ batchId }: { batchId: string }) {
     </details>
   );
 }
-export function WorkbookDetails({ id }: { id: string }) {
+export function WorkbookDetails({
+  id,
+  columns,
+}: {
+  id: string;
+  columns?: number[];
+}) {
   const cache = useQueryClient();
   const query = useQuery({
     queryKey: ["workbook-details", id],
+    refetchOnMount: "always",
     queryFn: () =>
       api<{ data: SourceRow[] }>("/officers/" + id + "/workbook-details"),
   });
@@ -147,7 +154,7 @@ export function WorkbookDetails({ id }: { id: string }) {
       )}
       {query.data.data.map((row) => (
         <section key={row.rowId}>
-          <OtherSheets batchId={row.batchId} />
+          {!columns && <OtherSheets batchId={row.batchId} />}
           {!row.identityCheck.nameMatches && (
             <p role="alert">
               The current officer name differs from the workbook name. Compare
@@ -160,59 +167,61 @@ export function WorkbookDetails({ id }: { id: string }) {
             </strong>
           </p>
           <dl className="detail-grid">
-            {row.fields.map((field) => (
-              <div key={field.column} style={{ minWidth: 0 }}>
-                <dt>{field.label}</dt>
-                <dd
-                  style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
-                >
-                  {field.value || "Blank in source"}
-                </dd>
-                <p>
-                  {field.review
-                    ? (field.review.decision === "CHECKED"
-                        ? "Source checked"
-                        : "Needs correction") +
-                      " · " +
-                      new Date(field.review.reviewedAt).toLocaleString()
-                    : "Pending verification"}
-                </p>
-                {field.canReview && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={review.isPending}
-                      onClick={() =>
-                        review.mutate({
-                          rowId: row.rowId,
-                          column: field.column,
-                          decision: "CHECKED",
-                          expectedRevision: field.review?.revision || 0,
-                        })
-                      }
-                    >
-                      Mark checked
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={review.isPending}
-                      onClick={() =>
-                        review.mutate({
-                          rowId: row.rowId,
-                          column: field.column,
-                          decision: "NEEDS_CORRECTION",
-                          expectedRevision: field.review?.revision || 0,
-                        })
-                      }
-                    >
-                      Needs correction
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+            {row.fields
+              .filter((field) => !columns || columns.includes(field.column))
+              .map((field) => (
+                <div key={field.column} style={{ minWidth: 0 }}>
+                  <dt>{field.label}</dt>
+                  <dd
+                    style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+                  >
+                    {field.value || "Blank in source"}
+                  </dd>
+                  <p>
+                    {field.review
+                      ? (field.review.decision === "CHECKED"
+                          ? "Source checked"
+                          : "Needs correction") +
+                        " · " +
+                        new Date(field.review.reviewedAt).toLocaleString()
+                      : "Pending verification"}
+                  </p>
+                  {field.canReview && (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={review.isPending}
+                        onClick={() =>
+                          review.mutate({
+                            rowId: row.rowId,
+                            column: field.column,
+                            decision: "CHECKED",
+                            expectedRevision: field.review?.revision || 0,
+                          })
+                        }
+                      >
+                        Mark checked
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={review.isPending}
+                        onClick={() =>
+                          review.mutate({
+                            rowId: row.rowId,
+                            column: field.column,
+                            decision: "NEEDS_CORRECTION",
+                            expectedRevision: field.review?.revision || 0,
+                          })
+                        }
+                      >
+                        Needs correction
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
           </dl>
         </section>
       ))}

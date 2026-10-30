@@ -15,6 +15,20 @@ import { api, Officer, dateLabel } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import { Confirm, Empty, ErrorNotice, Loading } from "../components/shared";
+const sourceColumns: Record<string, number[]> = {
+  overview: [1, 2, 3, 6, 7, 8, 9, 10, 11, 24, 27, 32],
+  service: [11, 13, 22, 23, 31, 33, 34, 38],
+  assignments: [13, 14, 16, 17, 19, 20, 35],
+  ranks: [4, 5, 15, 30],
+  movements: [17, 19, 20, 23],
+  statuses: [22, 23],
+  education: [12, 21],
+  courses: [18],
+  awards: [26],
+  discipline: [28, 29],
+  examinations: [25],
+  finance: [36, 37],
+};
 const sections = [
   { key: "workbook", label: "Workbook details", permission: "import_source" },
   { key: "overview", label: "Overview" },
@@ -32,6 +46,11 @@ const sections = [
   },
   { key: "statuses", label: "Service status", permission: "status_history" },
   { key: "education", label: "Education", permission: "education" },
+  {
+    key: "finance",
+    label: "Financial information",
+    permission: "financial_details",
+  },
   { key: "courses", label: "Courses", permission: "courses" },
   { key: "awards", label: "Awards", permission: "awards" },
   {
@@ -382,9 +401,29 @@ export function Profile() {
                   </p>
                 </div>
               </div>
+              {can("fields.import_source.view") && (
+                <div style={{ marginTop: 24 }}>
+                  <h3>Original workbook details</h3>
+                  <WorkbookDetails id={id!} columns={sourceColumns.overview} />
+                </div>
+              )}
             </>
           ) : (
-            <History key={tab} id={id!} section={tab} />
+            <>
+              {tab !== "finance" && (
+                <History key={tab} id={id!} section={tab} />
+              )}
+              {can("fields.import_source.view") && (
+                <div style={{ marginTop: 24 }}>
+                  <h3>Workbook information — pending verification</h3>
+                  <WorkbookDetails
+                    key={tab}
+                    id={id!}
+                    columns={sourceColumns[tab]}
+                  />
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
