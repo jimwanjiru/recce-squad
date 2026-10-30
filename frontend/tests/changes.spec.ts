@@ -186,11 +186,11 @@ test("record, edit, delete and independently approve officer changes without mix
   await dialog
     .getByLabel("Change effective date", { exact: true })
     .fill(`${past}-07-01`);
-  await dialog.getByLabel("G · Sub-unit", { exact: true }).fill("HQS");
+  await dialog.getByLabel("Sub-unit", { exact: true }).fill("HQS");
   await dialog
-    .getByLabel("AL · Additional source value", { exact: true })
+    .getByLabel("Transferred to", { exact: true })
     .fill("FICTIONAL_UI_LAST_COLUMN");
-  await expect(dialog.locator("textarea")).toHaveCount(38);
+  await expect(dialog.locator("textarea")).toHaveCount(13);
   await dialog.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(
@@ -200,14 +200,14 @@ test("record, edit, delete and independently approve officer changes without mix
     name: "Changes workbook table",
     exact: true,
   });
-  await expect(table.getByRole("columnheader")).toHaveCount(43);
+  await expect(table.getByRole("columnheader")).toHaveCount(18);
   await table.getByRole("button", { name: "Edit", exact: true }).click();
   dialog = page.getByRole("dialog", {
     name: "Officer change record",
     exact: true,
   });
   await dialog
-    .getByLabel("AL · Additional source value", { exact: true })
+    .getByLabel("Transferred to", { exact: true })
     .fill("FICTIONAL_UI_EDITED_LAST_COLUMN");
   await dialog.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(dialog).toHaveCount(0);

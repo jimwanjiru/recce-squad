@@ -117,10 +117,29 @@ test("CHANGES keeps A–AL, requires an existing officer, isolates years, suppor
     const options = await maker.get("/api/changes/options");
     assert.equal(options.status, 200);
     for (const t of options.body.data.types) {
-      assert.equal(t.columns.length, 38);
+      assert(
+        t.columns.every((c: any) => c.label !== "Additional source value"),
+      );
       assert.equal(t.columns[6].label, "Sub-unit");
-      assert.equal(t.columns[37].letter, "AL");
+      assert(t.columns.some((c: any) => c.label === "Change type"));
     }
+    const transferColumns = options.body.data.types.find(
+      (t: any) => t.code === "TRANSFER_OUT",
+    ).columns;
+    assert.equal(transferColumns.length, 13);
+    assert.deepEqual(
+      transferColumns.map((c: any) => c.column),
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15],
+    );
+    assert.equal((await post("/api/changes/examples", {})).status, 200);
+    assert.equal(
+      (await post("/api/changes/examples", {})).body.data.created,
+      0,
+    );
+    assert.equal(
+      (await post("/api/changes/examples/remove", {})).body.data.removed,
+      2,
+    );
     unitId = (
       await db.unit.create({ data: { code: tag, name: "Fictional formation" } })
     ).id;

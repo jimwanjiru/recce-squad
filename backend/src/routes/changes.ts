@@ -9,6 +9,7 @@ import {
   changeTypes,
   changeLabels,
   changeColumns,
+  rawChangeColumns,
   changePermission,
   sourceChangeType,
 } from "../services/changes-fields.js";
@@ -115,6 +116,145 @@ async function transaction<T>(
 }
 export function changesRoutes(db: PrismaClient) {
   const router = Router();
+  router.post(
+    "/changes/examples",
+    run(async (_req, res) => {
+      need(res, true);
+      if (!actor(res).grants.has("officers.create"))
+        throw new HttpError(403, "PERMISSION_DENIED");
+      const year = Number(businessDate().slice(0, 4));
+      const result = await db.$transaction(
+        async (tx) => {
+          await organizationLock(tx);
+          let created = 0;
+          for (const [index, spec] of ["C.I(W)", "C.I"].entries()) {
+            const forceNumber =
+                "DEMO-CHANGES-" + String(index + 1).padStart(3, "0"),
+              fullName = "Fictional Change Example " + (index + 1);
+            let officer = await tx.officer.findUnique({
+              where: { forceNumber },
+            });
+            if (officer && officer.fullName !== fullName)
+              throw new HttpError(409, "DEMO_RECORD_CONFLICT");
+            if (!officer)
+              officer = await tx.officer.create({
+                data: { forceNumber, fullName, recordStatus: "UNVERIFIED" },
+              });
+            if (
+              await tx.officerChange.count({ where: { officerId: officer.id } })
+            )
+              continue;
+            const id = randomUUID(),
+              date = `${year - index}-02-15`;
+            const cells = fullCells({
+              "1": String(index + 1),
+              "2": forceNumber,
+              "3": spec,
+              "4": "CI",
+              "5": fullName,
+              "6": "Fictional station",
+              "7": index ? "RRT" : "MO",
+              "8": "Fictional destination",
+              "9": `DEMO/GSU/${index + 1}`,
+              "10": date,
+              "14": `DEMO/KPS/${index + 1}`,
+              "15": date,
+            });
+            await tx.officerChange.create({
+              data: {
+                id,
+                officerId: officer.id,
+                eventType: "TRANSFER_OUT",
+                effectiveDate: verifiedDate(date),
+                recordedById: actor(res).userId,
+                workbookCells: await sealChange(
+                  cells,
+                  id,
+                  (await tx.importBatch.count()) === 0 &&
+                    (await tx.officerChange.count()) === 0,
+                ),
+              },
+            });
+            created++;
+          }
+          await audit(
+            tx,
+            res,
+            "FICTIONAL_CHANGE_EXAMPLES_CREATED",
+            "demo-changes",
+            ["draftExamples"],
+          );
+          return { created };
+        },
+        { timeout: 30000 },
+      );
+      res.json({ data: result });
+    }),
+  );
+  router.post(
+    "/changes/examples/remove",
+    run(async (_req, res) => {
+      need(res, true);
+      if (!actor(res).grants.has("officers.archive"))
+        throw new HttpError(403, "PERMISSION_DENIED");
+      const result = await db.$transaction(async (tx) => {
+        await organizationLock(tx);
+        let removed = 0;
+        for (const index of [1, 2]) {
+          const forceNumber = "DEMO-CHANGES-" + String(index).padStart(3, "0");
+          const officer = await tx.officer.findUnique({
+            where: { forceNumber },
+            include: {
+              changes: true,
+              _count: {
+                select: {
+                  assignments: true,
+                  rankHistories: true,
+                  statusHistories: true,
+                  movements: true,
+                  importRows: true,
+                  education: true,
+                  courses: true,
+                  awards: true,
+                  disciplinaryRecords: true,
+                  examinations: true,
+                },
+              },
+              serviceProfile: true,
+              financialDetail: true,
+            },
+          });
+          if (!officer) continue;
+          if (
+            officer.fullName !== "Fictional Change Example " + index ||
+            officer.version !== 0 ||
+            officer.changes.some(
+              (c) => c.status !== "DRAFT" || c.sourceImportRowId || c.amendsId,
+            ) ||
+            Object.values(officer._count).some((n) => n > 0) ||
+            officer.serviceProfile ||
+            officer.financialDetail
+          )
+            throw new HttpError(409, "DEMO_RECORD_MODIFIED");
+          await tx.officerChange.deleteMany({
+            where: { officerId: officer.id },
+          });
+          await tx.officer.delete({ where: { id: officer.id } });
+          removed++;
+        }
+        await audit(
+          tx,
+          res,
+          "FICTIONAL_CHANGE_EXAMPLES_REMOVED",
+          "demo-changes",
+          ["draftExamples"],
+        );
+        return { removed };
+      });
+      res.json({ data: result });
+    }),
+  );
+
   router.post(
     "/changes/references",
     run(async (_req, res) => {
@@ -264,6 +404,7 @@ export function changesRoutes(db: PrismaClient) {
       ].sort((a, b) => b - a);
       res.json({
         data: {
+          sourceColumns: rawChangeColumns(),
           types: changeTypes.map((code) => ({
             code,
             label: changeLabels[code],
@@ -314,7 +455,7 @@ export function changesRoutes(db: PrismaClient) {
         return res.json({
           data: [],
           meta: { total: 0, ...q },
-          columns: changeColumns(),
+          columns: rawChangeColumns(),
         });
       const where = { batchId: batch.id, sheetName: "CHANGES" };
       const [rows, total] = await db.$transaction([
@@ -363,7 +504,7 @@ export function changesRoutes(db: PrismaClient) {
           change: row.change,
         });
       }
-      res.json({ data, meta: { total, ...q }, columns: changeColumns() });
+      res.json({ data, meta: { total, ...q }, columns: rawChangeColumns() });
     }),
   );
   router.get(
@@ -558,7 +699,8 @@ export function changesRoutes(db: PrismaClient) {
           throw new HttpError(409, "CHANGE_REVISION_CONFLICT");
         if (body.cells["2"] && body.cells["2"] !== row.officer.forceNumber)
           throw new HttpError(409, "WORKBOOK_OFFICER_IDENTITY_MISMATCH");
-        const cells = fullCells(body.cells);
+        const before = await openSource(row.workbookCells, "changes:" + row.id);
+        const cells = fullCells({ ...before, ...body.cells });
         cells["2"] = row.officer.forceNumber;
         const record = await tx.officerChange.update({
           where: { id: row.id },

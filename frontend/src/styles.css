@@ -2276,3 +2276,9 @@ td.mono {
   background: #e6f6ed;
   color: #28734a;
 }
+.changes-table {
+  min-width: 2800px;
+}
+.changes-table:has(th:nth-child(30)) {
+  min-width: 6500px;
+}

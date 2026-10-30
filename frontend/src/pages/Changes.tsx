@@ -12,6 +12,7 @@ type Type = { code: string; label: string; columns: Column[] };
 type Option = { id: string; code: string; name: string; unitId?: string };
 type Options = {
   types: Type[];
+  sourceColumns: Column[];
   years: number[];
   units: Option[];
   subUnits: Option[];
@@ -66,7 +67,7 @@ export function Changes() {
     [page, setPage] = useState(1),
     [pageSize, setPageSize] = useState(10),
     [search, setSearch] = useState(""),
-    [type, setType] = useState(""),
+    [type, setType] = useState("TRANSFER_OUT"),
     [status, setStatus] = useState("");
   const [form, setForm] = useState<FormState | null>(null),
     [confirm, setConfirm] = useState<{ row: Change; action: string } | null>(
@@ -120,6 +121,16 @@ export function Changes() {
   const refresh = () => {
     cache.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "session" });
   };
+  const examples = useMutation({
+    mutationFn: (remove: boolean) =>
+      api("/changes/examples" + (remove ? "/remove" : ""), { method: "POST" }),
+    onSuccess: () => {
+      setNotice(
+        "Fictional examples updated. They are drafts only and can be deleted.",
+      );
+      refresh();
+    },
+  });
   const references = useMutation({
     mutationFn: () => api("/changes/references", { method: "POST" }),
     onSuccess: () => {
@@ -169,6 +180,24 @@ export function Changes() {
           </p>
         </div>
         <div className="changes-header-actions">
+          {meta.canCreate && (
+            <>
+              <Button
+                variant="outline"
+                disabled={examples.isPending}
+                onClick={() => examples.mutate(false)}
+              >
+                Add fictional examples
+              </Button>
+              <Button
+                variant="outline"
+                disabled={examples.isPending}
+                onClick={() => examples.mutate(true)}
+              >
+                Remove fictional examples
+              </Button>
+            </>
+          )}
           {meta.canPrepareReferences && (
             <Button
               variant="outline"
@@ -197,6 +226,7 @@ export function Changes() {
           {notice}
         </div>
       )}
+      {examples.error && <ErrorNotice error={examples.error} />}
       {references.error && <ErrorNotice error={references.error} />}
       <div
         className="analytics-view-tabs"
@@ -316,9 +346,9 @@ export function Changes() {
           <ClipboardList size={18} />
         </div>
         <p className="changes-table-note">
-          Every column A–AL is included. Cells are displayed compactly; open a
-          record to read or edit full values. Dates on reference letters do not
-          automatically determine the event year.
+          {view === "source"
+            ? "Original workbook columns are retained here for provenance."
+            : "Transfers out uses the agreed 13 columns. Reference dates remain separate from the effective year."}
         </p>
         {list.isPending ? (
           <Loading />
@@ -346,7 +376,8 @@ export function Changes() {
                     )}
                     {columns.map((c) => (
                       <th key={c.column}>
-                        {c.letter} · {c.label}
+                        {view === "source" ? c.letter + " · " : ""}
+                        {c.label}
                       </th>
                     ))}
                   </tr>
@@ -512,9 +543,16 @@ export function Changes() {
                               className="change-cell-value"
                               title={item.cells[String(c.column)]}
                             >
-                              {workbookValue(
-                                item.cells[String(c.column)] || "",
-                              ) || "—"}
+                              {view === "register" && c.label === "Change type"
+                                ? row.eventType === "TRANSFER_OUT" ||
+                                  row.eventType === "SUB_UNIT_TRANSFER"
+                                  ? "Transfer"
+                                  : meta.types.find(
+                                      (t) => t.code === row.eventType,
+                                    )?.label || row.eventType
+                                : workbookValue(
+                                    item.cells[String(c.column)] || "",
+                                  ) || "—"}
                             </div>
                           </td>
                         ))}
@@ -659,7 +697,10 @@ function ChangeForm({
     },
     onSuccess: () => saved(date ? Number(date.slice(0, 4)) : "undated"),
   });
-  const columns = options.types.find((t) => t.code === type)!.columns,
+  const columns =
+      state.source && state.readOnly
+        ? options.sourceColumns
+        : options.types.find((t) => t.code === type)!.columns,
     readOnly = state.readOnly;
   return (
     <dialog
@@ -697,7 +738,7 @@ function ChangeForm({
         <p>
           {state.amend
             ? "The original applied event stays unchanged. Choose the corrective event and its true effective date."
-            : "All 38 source columns are retained. A blank or unconfirmed effective date stays in the Undated queue."}
+            : "The transfer form uses the agreed 13 columns. Rank 1 preserves specifications such as C.I(W); Rank 2 is the overall rank CI. Unknown effective dates stay Undated."}
         </p>
         {mutation.error && <ErrorNotice error={mutation.error} />}
         {!initial && !state.source && !state.officer && (
@@ -836,17 +877,30 @@ function ChangeForm({
             </label>
           )}
         </div>
-        <h3>Workbook columns A–AL</h3>
+        <h3>
+          {type === "TRANSFER_OUT"
+            ? "Transfer details — agreed columns"
+            : "Event details"}
+        </h3>
         <div className="changes-column-grid">
           {columns.map((c) => (
             <label key={c.column}>
-              {c.letter} · {c.label}
+              {c.label}
               <textarea
-                aria-label={c.letter + " · " + c.label}
+                aria-label={c.label}
                 rows={2}
-                value={cells[String(c.column)] || ""}
+                value={
+                  c.label === "Change type"
+                    ? type === "TRANSFER_OUT" || type === "SUB_UNIT_TRANSFER"
+                      ? "Transfer"
+                      : options.types.find((t) => t.code === type)?.label ||
+                        type
+                    : cells[String(c.column)] || ""
+                }
                 maxLength={20000}
-                disabled={readOnly || c.column === 2}
+                disabled={
+                  readOnly || c.column === 2 || c.label === "Change type"
+                }
                 onChange={(e) =>
                   setCells((old) => ({
                     ...old,

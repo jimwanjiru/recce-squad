@@ -54,14 +54,35 @@ export function columnLetter(n: number) {
   return result;
 }
 export function changeColumns(type?: string) {
+  if (type === "TRANSFER_OUT")
+    return [
+      [1, "S/NO"],
+      [2, "Force number"],
+      [3, "Rank 1"],
+      [4, "Rank 2"],
+      [5, "Name"],
+      [6, "Station"],
+      [7, "Sub-unit"],
+      [8, "Transferred to"],
+      [9, "GSU letter / signal reference"],
+      [10, "GSU reference date"],
+      [11, "Change type"],
+      [14, "KPS letter / signal reference"],
+      [15, "KPS reference date"],
+    ].map(([column, label]) => ({
+      column: Number(column),
+      letter: columnLetter(Number(column)),
+      label: String(label),
+    }));
   const headers: Record<number, string> = {
     1: "Source serial",
     2: "Force number",
-    3: "Rank",
-    4: "Rank 2 / original designation",
+    3: "Rank 1",
+    4: "Rank 2",
     5: "Name",
     6: "Station",
     7: "Sub-unit",
+    11: "Change type",
   };
   if (type === "TRANSFER_OUT")
     Object.assign(headers, {
@@ -112,11 +133,13 @@ export function changeColumns(type?: string) {
       9: "Our reference",
       10: "Reference date",
     });
-  return Array.from({ length: 38 }, (_, index) => ({
-    column: index + 1,
-    letter: columnLetter(index + 1),
-    label: headers[index + 1] || "Additional source value",
-  }));
+  return Object.entries(headers)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([column, label]) => ({
+      column: Number(column),
+      letter: columnLetter(Number(column)),
+      label,
+    }));
 }
 // CHANGES has varying section layouts, including free text in otherwise sensitive columns.
 export function changePermission(
@@ -139,4 +162,17 @@ export function sourceChangeType(row: number) {
   if (row === 30) return "DISMISSAL";
   if (row >= 34 && row <= 37) return "SUSPENSION";
   return null;
+}
+
+export function changeTypeValue(type: string) {
+  return type === "TRANSFER_OUT" || type === "SUB_UNIT_TRANSFER"
+    ? "Transfer"
+    : changeLabels[type] || type;
+}
+export function rawChangeColumns() {
+  return Array.from({ length: 38 }, (_, i) => ({
+    column: i + 1,
+    letter: columnLetter(i + 1),
+    label: i === 6 ? "Sub-unit" : "Original source column",
+  }));
 }
