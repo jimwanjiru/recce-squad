@@ -39,3 +39,9 @@ Counts use the standardized rank column E in NAMES. C.I/C.I. are displayed under
 Workbook current-strength and establishment inputs use the worksheet's total columns: B, E, H, K, N, Q, T, W, X, AA, AD, AG and AJ. The rows labelled Current Strength and Establishment are read from the latest retained source import. Errors/missing values remain unavailable, while literal zero remains zero. A total establishment/gap is shown only when all 13 source establishment inputs are available. In-camp/detached classifications and promotion-deficit formulas are not invented from these inputs.
 
 Rank counts require the existing fields.rank_history.view permission in addition to the dashboard's other grants. Unit and integration tests cover all 13 columns, CI spelling equivalence, unmapped ranks, zero/error source values, positive/negative gaps and rank-permission denial. Chromium checks cover the matrix and comparison headings; source spellings are not rewritten.
+
+## Analytics views and pagination
+
+The dashboard is now split into **Overview**, **Strength analysis** and **Workbook comparison**. Overview has an interactive group-distribution ring, a rank-composition chart and count cards. Selecting a group in the chart focuses its count/share and provides a link to the corresponding Organization roster; the group count cards also link to rosters. RECCE membership remains separate from the placement distribution.
+
+Strength and workbook tables have independent pagination controls, row counts and selectable page sizes. The rank matrix defaults to five groups per page, while rank comparison defaults to ten ranks per page. Headers still show every rank; footer totals refer to all groups/ranks, not just the visible page. This reduces page length without changing the underlying totals.

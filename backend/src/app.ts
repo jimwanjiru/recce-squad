@@ -10,6 +10,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { z, ZodError } from "zod";
 import { HttpError } from "./services/errors.js";
 import { organizationRoutes } from "./routes/organization.js";
+import { groupRosterRoutes } from "./routes/group-roster.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { workbookReviewRoutes } from "./routes/workbook-review.js";
 import { officerRoutes } from "./routes/officers.js";
@@ -297,6 +298,7 @@ export async function createApp(db: PrismaClient, options: AppOptions) {
   app.use("/api", officerRoutes(db));
   app.use("/api", workbookReviewRoutes(db));
   app.use("/api", dashboardRoutes(db));
+  app.use("/api", groupRosterRoutes(db));
   app.use("/api", organizationRoutes(db));
   app.get(
     "/api/permissions",

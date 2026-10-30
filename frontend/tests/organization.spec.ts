@@ -86,6 +86,9 @@ test("manage organization references, baseline assignment, deployment and dated 
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in securely" }).click();
   await page.getByRole("link", { name: "Organization", exact: true }).click();
+  await page
+    .getByRole("tab", { name: "Reference and history", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Organization", exact: true }),
   ).toBeVisible();

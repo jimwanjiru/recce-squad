@@ -1,3 +1,4 @@
+import { GroupRosters } from "../components/GroupRosters";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -108,6 +109,47 @@ const tabs: {
   },
 ];
 export function Organization() {
+  const { can } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const allowed = [
+    "organization.view",
+    "officers.view",
+    "fields.import_source.view",
+    "fields.assignments.view",
+    "fields.rank_history.view",
+    "fields.service_profile.view",
+  ].every((p) => can(p));
+  const showGroups =
+    allowed && params.get("view") !== "manage" && !params.has("tab");
+  return (
+    <>
+      {allowed && (
+        <div
+          className="organization-view-switch"
+          role="tablist"
+          aria-label="Organization views"
+        >
+          <button
+            role="tab"
+            aria-selected={showGroups}
+            onClick={() => setParams({ view: "groups" })}
+          >
+            Groups and officers
+          </button>
+          <button
+            role="tab"
+            aria-selected={!showGroups}
+            onClick={() => setParams({ view: "manage" })}
+          >
+            Reference and history
+          </button>
+        </div>
+      )}
+      {showGroups ? <GroupRosters /> : <OrganizationManagement />}
+    </>
+  );
+}
+function OrganizationManagement() {
   const { can } = useAuth();
   const cache = useQueryClient();
   const [params, setParams] = useSearchParams();

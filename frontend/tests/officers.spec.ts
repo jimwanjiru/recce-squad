@@ -235,6 +235,17 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(
     page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
   ).toHaveCount(0);
+  await page
+    .locator(".distribution-legend")
+    .getByRole("button", { name: /Main Office/ })
+    .click();
+  await expect(
+    page.getByRole("link", { name: "View Main Office roster →", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: ".local/analytics-overview-layout.png" });
+  await page
+    .getByRole("tab", { name: "Strength analysis", exact: true })
+    .click();
   const matrix = page.getByRole("table", {
     name: "Sub-unit strength by police rank",
     exact: true,
@@ -267,8 +278,48 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     }),
   ).toContainText("+1");
   await page.screenshot({ path: ".local/dashboard-layout.png" });
+  await page
+    .getByRole("navigation", { name: "Rank matrix pagination", exact: true })
+    .getByRole("button", { name: "Next", exact: true })
+    .click();
+  await expect(
+    matrix.getByRole("rowheader", { name: "GP3", exact: true }),
+  ).toBeVisible();
   await matrix.scrollIntoViewIfNeeded();
   await page.screenshot({ path: ".local/rank-strength-layout.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/organization?view=groups&group=MO");
+  await expect(
+    page
+      .getByRole("table", { name: "Group officer roster", exact: true })
+      .getByRole("link", { name: "Fictional Browser Officer", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("table", { name: "Group officer roster", exact: true })
+      .getByText("CI", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Filter roster by rank", { exact: true })
+    .selectOption("PC");
+  await expect(
+    page.getByText("No officers match this group and filter.", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Filter roster by rank", { exact: true })
+    .selectOption("CI");
+  await expect(
+    page
+      .getByRole("table", { name: "Group officer roster", exact: true })
+      .getByRole("link", { name: "Fictional Browser Officer", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: ".local/group-roster-layout.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(

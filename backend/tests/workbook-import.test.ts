@@ -181,6 +181,52 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
           password: "Fictional-Import-Password-2026!",
         });
       assert.equal(login.status, 200);
+      const roster = await agent.get(
+        "/api/organization/groups?group=MO&pageSize=1&page=1",
+      );
+      assert.equal(roster.status, 200);
+      assert.equal(roster.body.data.length, 1);
+      assert.equal(roster.body.meta.total, 1);
+      assert.equal(roster.body.data[0].rank, "CI");
+      assert.equal(roster.body.data[0].verifiedGroup, null);
+      assert(!JSON.stringify(roster.body).includes("ACCOUNT-SECRET"));
+      assert.equal(
+        (await agent.get("/api/organization/groups?group=MO&rank=PC")).body.meta
+          .total,
+        0,
+      );
+      const firstPage = await agent.get(
+          "/api/organization/groups?group=ALL&pageSize=1&page=1",
+        ),
+        secondPage = await agent.get(
+          "/api/organization/groups?group=ALL&pageSize=1&page=2",
+        );
+      assert.equal(firstPage.body.meta.total, 3);
+      assert.equal(secondPage.body.data.length, 1);
+      assert.notEqual(firstPage.body.data[0].id, secondPage.body.data[0].id);
+      assert.equal(
+        (await agent.get("/api/organization/groups?group=RECCE")).body.meta
+          .total,
+        1,
+      );
+      assert.equal(
+        (await agent.get("/api/organization/groups?group=INVALID")).status,
+        422,
+      );
+      assert.equal(
+        (await agent.get("/api/organization/groups?pageSize=1000")).status,
+        422,
+      );
+      assert.equal(
+        (
+          await agent.get(
+            "/api/organization/groups?group=MO&q=" +
+              encodeURIComponent("' OR 1=1"),
+          )
+        ).body.meta.total,
+        0,
+      );
+
       const dashboard = await agent.get("/api/dashboard");
       assert.equal(dashboard.status, 200);
       assert.equal(dashboard.body.data.totalOfficers, baseline + 3);
@@ -222,6 +268,7 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
         },
       });
       assert.equal((await agent.get("/api/dashboard")).status, 403);
+      assert.equal((await agent.get("/api/organization/groups")).status, 403);
       await db.rolePermission.create({
         data: { roleId, permissionId: rankPermission.id },
       });
@@ -247,6 +294,10 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
       const archivedSummary = await agent.get("/api/dashboard");
       assert.equal(archivedSummary.body.data.sourceLinked, 2);
       assert.equal(archivedSummary.body.data.recce, 0);
+      assert.equal(
+        (await agent.get("/api/organization/groups?group=MO")).body.meta.total,
+        0,
+      );
       await db.officer.update({
         where: { id: original.id },
         data: { deletedAt: null, updatedAt: savedOriginal.updatedAt },
