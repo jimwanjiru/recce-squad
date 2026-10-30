@@ -45,8 +45,8 @@ function OtherSheets({ batchId }: { batchId: string }) {
     <details>
       <summary>Other workbook sheets</summary>
       <p>
-        Workbook codes: MO = Main Office; NA = Not applicable / not deployed to
-        a team or group; R = Recce.
+        Workbook codes: MO = Main Office; NA = Not assigned / Not applicable; R
+        = Recce.
       </p>
       <p>
         Original source rows. Section labels and totals are preserved for

@@ -4,6 +4,41 @@ import {
   sourceText,
   checkSourceOfficer,
 } from "./workbook-source.js";
+export const policeRanks = [
+  "S/AIG",
+  "AIG",
+  "CP",
+  "SSP",
+  "SP",
+  "ASP",
+  "CI",
+  "IP",
+  "RSM",
+  "S/SGT",
+  "SGT",
+  "CPL",
+  "PC",
+] as const;
+export const strengthRankColumns: Record<string, number> = {
+  "S/AIG": 2,
+  AIG: 5,
+  CP: 8,
+  SSP: 11,
+  SP: 14,
+  ASP: 17,
+  CI: 20,
+  IP: 23,
+  RSM: 24,
+  "S/SGT": 27,
+  SGT: 30,
+  CPL: 33,
+  PC: 36,
+};
+export function sourceRank(value: unknown): string {
+  const label = sourceText(value).trim().toUpperCase();
+  const normalized = label === "C.I" || label === "C.I." ? "CI" : label;
+  return policeRanks.includes(normalized as any) ? normalized : "UNKNOWN";
+}
 export const groupCodes = [
   "MO",
   "HQS",
@@ -67,6 +102,11 @@ export async function dashboardSummary(
     ]);
   const counts: Record<string, number> = {};
   for (const c of [...groupCodes, "OTHER", "UNSPECIFIED"]) counts[c] = 0;
+  const rankCounts: Record<string, number> = {},
+    recceRankCounts: Record<string, number> = {};
+  const groupRankCounts: Record<string, Record<string, number>> = {};
+  for (const c of [...groupCodes, "OTHER", "UNSPECIFIED"])
+    groupRankCounts[c] = {};
   const seen = new Set<string>();
   let recce = 0,
     identityMismatches = 0,
@@ -106,7 +146,19 @@ export async function dashboardSummary(
         continue;
       }
       seen.add(row.officerId);
-      if (tallyOfficer(raw, counts)) recce++;
+      const belongsToRecce = tallyOfficer(raw, counts);
+      if (belongsToRecce) recce++;
+      const rank = sourceRank(raw["5"]);
+      rankCounts[rank] = (rankCounts[rank] || 0) + 1;
+      if (belongsToRecce)
+        recceRankCounts[rank] = (recceRankCounts[rank] || 0) + 1;
+      const disposition = code(raw["20"]);
+      const group = groupCodes.includes(disposition as any)
+        ? disposition
+        : disposition
+          ? "OTHER"
+          : "UNSPECIFIED";
+      groupRankCounts[group]![rank] = (groupRankCounts[group]![rank] || 0) + 1;
     }
     if (rows.length < 150) break;
     cursor = rows[rows.length - 1]!.id;
@@ -120,6 +172,8 @@ export async function dashboardSummary(
     select: { id: true, fileSha256: true, createdAt: true },
   });
   const snapshot: Record<string, number | null> = {};
+  const workbookRankCounts: Record<string, number | null> = {},
+    workbookEstablishment: Record<string, number | null> = {};
   let workbookTotal: number | null = null,
     workbookRecce: number | null = null;
   if (batch) {
@@ -134,6 +188,14 @@ export async function dashboardSummary(
         `${batch.fileSha256}:${row.sheetName}:${row.rowNumber}`,
       );
       const label = code(raw["1"]);
+      if (label === "CURRENTSTRENGTH" || label === "ESTABLISHMENT") {
+        const target =
+          label === "CURRENTSTRENGTH"
+            ? workbookRankCounts
+            : workbookEstablishment;
+        for (const rank of policeRanks)
+          target[rank] = cachedNumber(raw[String(strengthRankColumns[rank])]);
+      }
       if (groupCodes.includes(label as any))
         snapshot[label] = cachedNumber(raw["37"]);
       if (label === "R") workbookRecce = cachedNumber(raw["37"]);
@@ -149,12 +211,30 @@ export async function dashboardSummary(
     sourceLinked: seen.size,
     withoutSource: Math.max(0, totalOfficers - seen.size),
     identityMismatches,
+    rankBreakdown: [...policeRanks, "UNKNOWN"].map((rank) => ({
+      code: rank,
+      label: rank === "UNKNOWN" ? "Unmapped / blank rank" : rank,
+      count: rankCounts[rank] || 0,
+      recceCount: recceRankCounts[rank] || 0,
+      workbookCurrent: workbookRankCounts[rank] ?? null,
+      workbookEstablishment: workbookEstablishment[rank] ?? null,
+      differenceToEstablishment:
+        workbookEstablishment[rank] != null
+          ? workbookEstablishment[rank]! - (rankCounts[rank] || 0)
+          : null,
+    })),
     groups: [...groupCodes, "OTHER", "UNSPECIFIED"].map((c) => ({
       code: c,
       label:
         groupLabels[c] ||
         (c === "OTHER" ? "Other source disposition" : "Blank disposition"),
       count: counts[c] || 0,
+      ranks: Object.fromEntries(
+        [...policeRanks, "UNKNOWN"].map((rank) => [
+          rank,
+          groupRankCounts[c]![rank] || 0,
+        ]),
+      ),
       workbookCached: Object.hasOwn(snapshot, c) ? snapshot[c] : null,
       inStrengthSheet: Object.hasOwn(snapshot, c),
     })),

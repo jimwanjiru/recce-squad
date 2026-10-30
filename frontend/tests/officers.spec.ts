@@ -129,6 +129,7 @@ test("register, edit, search, archive and restore a fictional officer on desktop
           2: tag,
           6: "Fictional Browser Officer",
           4: "Fictional Specialist Designation",
+          5: "C.I",
           8: "1990-02-03T00:00:00.000Z",
           13: "2007",
           20: "MO",
@@ -159,6 +160,22 @@ test("register, edit, search, archive and restore a fictional officer on desktop
       status: "SOURCE_ONLY",
     },
   });
+  for (const [rowNumber, raw] of [
+    [23, { 1: "Current Strength", 20: { formula: "T19", result: 1 } }],
+    [24, { 1: "Establishment", 20: 2 }],
+  ] as const) {
+    await db.importRow.create({
+      data: {
+        batchId: batch.id,
+        sheetName: "SUB UNIT STRENGTH",
+        rowNumber,
+        rawData: seal(raw, sourceKey, `${tag}:SUB UNIT STRENGTH:${rowNumber}`),
+        unresolvedDates: {},
+        validationErrors: [],
+        status: "SOURCE_ONLY",
+      },
+    });
+  }
   await page
     .getByRole("tab", { name: "Workbook details", exact: true })
     .click();
@@ -218,7 +235,40 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(
     page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
   ).toHaveCount(0);
+  const matrix = page.getByRole("table", {
+    name: "Sub-unit strength by police rank",
+    exact: true,
+  });
+  for (const rank of [
+    "S/AIG",
+    "AIG",
+    "CP",
+    "SSP",
+    "SP",
+    "ASP",
+    "CI",
+    "IP",
+    "RSM",
+    "S/SGT",
+    "SGT",
+    "CPL",
+    "PC",
+  ])
+    await expect(
+      matrix.getByRole("columnheader", { name: rank, exact: true }),
+    ).toBeVisible();
+  const comparison = page.getByRole("table", {
+    name: "Rank strength and establishment comparison",
+    exact: true,
+  });
+  await expect(
+    comparison.getByRole("row").filter({
+      has: page.getByRole("rowheader", { name: "CI", exact: true }),
+    }),
+  ).toContainText("+1");
   await page.screenshot({ path: ".local/dashboard-layout.png" });
+  await matrix.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: ".local/rank-strength-layout.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(

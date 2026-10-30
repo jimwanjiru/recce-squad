@@ -43,6 +43,9 @@ async function fixture(file) {
   row(7, "TEST-IMPORT-C");
   s.getCell(7, 8).value = "2025-01-01";
   s.getCell(7, 11).value = "2000-01-01";
+  s.getCell(2, 5).value = "C.I";
+  s.getCell(3, 5).value = "PC";
+  s.getCell(7, 5).value = "Unmapped specialist";
   s.getCell(2, 20).value = "MO";
   s.getCell(2, 22).value = "R";
   const strength = w.addWorksheet("SUB UNIT STRENGTH");
@@ -59,6 +62,15 @@ async function fixture(file) {
   strength.getCell("A19").value = "TOTAL";
   strength.getCell("AK19").value = { formula: "SUM(AK8:AK18)", result: 99 };
   w.addWorksheet("CHANGES").addRow(["Fictional historical source", "2001"]);
+  strength.getCell("A23").value = "Current Strength";
+  strength.getCell("T23").value = { formula: "T19", result: 1 };
+  strength.getCell("AJ23").value = {
+    formula: "AJ19",
+    result: { error: "#REF!" },
+  };
+  strength.getCell("A24").value = "Establishment";
+  strength.getCell("T24").value = 2;
+  strength.getCell("AJ24").value = 0;
   await w.xlsx.writeFile(file);
 }
 test("workbook preview preserves source, holds partial dates and duplicates, and never turns histories into effective dates", async () => {

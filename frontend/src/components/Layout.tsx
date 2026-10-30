@@ -44,6 +44,7 @@ export function Layout() {
           "fields.import_source.view",
           "fields.assignments.view",
           "fields.service_profile.view",
+          "fields.rank_history.view",
         ].every((permission) => can(permission)) && (
           <Link
             to="/dashboard"

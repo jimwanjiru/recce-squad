@@ -7,8 +7,18 @@ type Group = {
   code: string;
   label: string;
   count: number;
+  ranks: Record<string, number>;
   workbookCached: number | null;
   inStrengthSheet: boolean;
+};
+type RankStrength = {
+  code: string;
+  label: string;
+  count: number;
+  recceCount: number;
+  workbookCurrent: number | null;
+  workbookEstablishment: number | null;
+  differenceToEstablishment: number | null;
 };
 type Summary = {
   totalOfficers: number;
@@ -19,6 +29,7 @@ type Summary = {
   withoutSource: number;
   identityMismatches: number;
   groups: Group[];
+  rankBreakdown: RankStrength[];
   workbook: {
     importedAt: string;
     total: number | null;
@@ -38,6 +49,26 @@ export function Dashboard() {
   if (query.error) return <ErrorNotice error={query.error} />;
   const d = query.data.data,
     max = Math.max(1, ...d.groups.map((g) => g.count));
+  const ranks = d.rankBreakdown.filter(
+    (rank) => rank.code !== "UNKNOWN" || rank.count > 0,
+  );
+  const completeEstablishment = d.rankBreakdown
+    .filter((rank) => rank.code !== "UNKNOWN")
+    .every((rank) => rank.workbookEstablishment !== null);
+  const establishmentTotal = completeEstablishment
+    ? d.rankBreakdown.reduce(
+        (sum, rank) => sum + (rank.workbookEstablishment || 0),
+        0,
+      )
+    : null;
+  const show = (value: number | null) =>
+    value === null ? "Unavailable" : number(value);
+  const gap = (value: number | null) =>
+    value === null
+      ? "Unavailable"
+      : value === 0
+        ? "0"
+        : (value > 0 ? "+" : "") + number(value);
   return (
     <div className="dashboard">
       <div className="dashboard-heading">
@@ -114,6 +145,116 @@ export function Dashboard() {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+      <section className="card">
+        <div className="panel-title">
+          <h2>Sub-unit strength by police rank</h2>
+        </div>
+        <div className="dashboard-notes">
+          Ranks follow your confirmed order, from S/AIG to PC. The table counts
+          original workbook ranks; it does not infer rank from force number.
+          RECCE is a membership summary and overlaps the group rows.
+        </div>
+        <div className="table-scroll">
+          <table
+            className="rank-strength-table"
+            aria-label="Sub-unit strength by police rank"
+          >
+            <thead>
+              <tr>
+                <th scope="col">Sub-unit / membership</th>
+                {ranks.map((rank) => (
+                  <th scope="col" key={rank.code}>
+                    {rank.code === "UNKNOWN" ? "Unmapped" : rank.code}
+                  </th>
+                ))}
+                <th scope="col">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="rank-membership-row">
+                <th scope="row">RECCE (membership)</th>
+                {ranks.map((rank) => (
+                  <td key={rank.code}>{number(rank.recceCount)}</td>
+                ))}
+                <td>{number(d.recce)}</td>
+              </tr>
+              {d.groups.map((group) => (
+                <tr key={group.code}>
+                  <th scope="row">{group.label}</th>
+                  {ranks.map((rank) => (
+                    <td key={rank.code}>
+                      {number(group.ranks[rank.code] || 0)}
+                    </td>
+                  ))}
+                  <td>{number(group.count)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Workbook-linked total</th>
+                {ranks.map((rank) => (
+                  <td key={rank.code}>{number(rank.count)}</td>
+                ))}
+                <td>{number(d.sourceLinked)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+      <section className="card">
+        <div className="panel-title">
+          <h2>Rank strength and establishment comparison</h2>
+        </div>
+        <div className="dashboard-notes">
+          Source establishment is the workbook's input for that rank, awaiting
+          verification. A positive gap means fewer officers than the source
+          establishment; a negative gap means more. Missing or erroneous cached
+          values remain unavailable.
+        </div>
+        <div className="table-scroll">
+          <table aria-label="Rank strength and establishment comparison">
+            <thead>
+              <tr>
+                <th scope="col">Police rank</th>
+                <th scope="col">Register count</th>
+                <th scope="col">RECCE</th>
+                <th scope="col">Workbook current strength</th>
+                <th scope="col">Source establishment</th>
+                <th scope="col">Gap to source establishment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranks.map((rank) => (
+                <tr key={rank.code}>
+                  <th scope="row">{rank.label}</th>
+                  <td>{number(rank.count)}</td>
+                  <td>{number(rank.recceCount)}</td>
+                  <td>{show(rank.workbookCurrent)}</td>
+                  <td>{show(rank.workbookEstablishment)}</td>
+                  <td>{gap(rank.differenceToEstablishment)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Total</th>
+                <td>{number(d.sourceLinked)}</td>
+                <td>{number(d.recce)}</td>
+                <td>{show(d.workbook?.total ?? null)}</td>
+                <td>{show(establishmentTotal)}</td>
+                <td>
+                  {gap(
+                    establishmentTotal === null
+                      ? null
+                      : establishmentTotal - d.sourceLinked,
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </section>
       <section className="card">

@@ -64,7 +64,7 @@ Dates include Excel dates and potential legacy inconsistencies. Honor the workbo
 
 The two rank columns differ on 212 candidate rows. D includes punctuation, gender and specialty suffixes; E is more standardized. Proposed canonical codes: S/AIG, AIG, CP, SSP, SP, ASP, CI, IP, RSM, S/SGT, SGT, CPL and PC. CI aliases include C.I; S/Sgt maps to S/SGT. Alias acceptance is reviewed, not inferred from prefixes. Hierarchy and RSM classification require confirmation before seed data.
 
-Disposition contains MO, HQS, GP1–GP4, RRT, CRT, CTSO, SPEAR and NA. Their appearance as strength-report rows does not prove each is an organizational sub-unit. The user confirmed MO = Main Office; NA = Not Applicable or not deployed to any team/group; R = Recce. NA is not a unit, inactivity status or automatic strength exclusion. FORMATION is not assumed to equal disposition or duty location. These meanings do not supply historical assignment dates or establish the full organization hierarchy.
+Disposition contains MO, HQS, GP1–GP4, RRT, CRT, CTSO, SPEAR and NA. Their appearance as strength-report rows does not prove each is an organizational sub-unit. The user confirmed MO = Main Office; NA = Not assigned / Not applicable; R = Recce. NA is not a unit, inactivity status or automatic strength exclusion. FORMATION is not assumed to equal disposition or duty location. These meanings do not supply historical assignment dates or establish the full organization hierarchy.
 
 NAMES formulas use TODAY, DATEDIF and EDATE for durations, age and retirement warnings. The observed retirement formula does not constitute approved policy. TRIBE uses COUNTIFS on canonical-rank and ethnicity columns and SUM totals; rebuild these from history-aware queries, never duplicate totals in tables.
 

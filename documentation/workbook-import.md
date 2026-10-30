@@ -116,4 +116,4 @@ The command checks the local operator's grants and all batch officers first. It 
 
 ## Confirmed workbook codes
 
-MO means Main Office. NA means Not Applicable or not deployed to a team/group. R means Recce. Officer source details show these meanings beside the original disposition and membership codes; the other-sheet viewer includes a legend. Original source cells are unchanged. No unit, assignment history, inactive status or strength inclusion/exclusion is inferred solely from these definitions.
+MO means Main Office. NA means Not assigned / Not applicable. R means Recce. Officer source details show these meanings beside the original disposition and membership codes; the other-sheet viewer includes a legend. Original source cells are unchanged. No unit, assignment history, inactive status or strength inclusion/exclusion is inferred solely from these definitions.

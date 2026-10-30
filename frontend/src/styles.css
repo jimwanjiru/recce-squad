@@ -1694,3 +1694,35 @@ td.mono {
     padding: 18px;
   }
 }
+
+.rank-strength-table {
+  min-width: 1150px;
+}
+.rank-strength-table td,
+.rank-strength-table th:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+}
+.rank-strength-table th:first-child {
+  min-width: 180px;
+}
+.rank-strength-table tbody th,
+.dashboard table tbody th {
+  font-weight: 500;
+  color: #475973;
+  padding: 16px 18px;
+  text-align: left;
+  font-size: 12px;
+}
+.dashboard table tfoot {
+  background: #edf3fc;
+  font-weight: 600;
+}
+.dashboard table tfoot th,
+.dashboard table tfoot td {
+  padding: 16px 18px;
+  font-size: 12px;
+}
+.rank-membership-row {
+  background: #f5f8fd;
+}

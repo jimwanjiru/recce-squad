@@ -190,6 +190,41 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
         (g: any) => g.code === "MO",
       );
       assert.equal(mainGroup.count, 1);
+      assert.equal(mainGroup.ranks.CI, 1);
+      const rankCI = dashboard.body.data.rankBreakdown.find(
+        (r: any) => r.code === "CI",
+      );
+      assert.equal(rankCI.count, 1);
+      assert.equal(rankCI.recceCount, 1);
+      assert.equal(rankCI.workbookCurrent, 1);
+      assert.equal(rankCI.workbookEstablishment, 2);
+      assert.equal(rankCI.differenceToEstablishment, 1);
+      const rankPC = dashboard.body.data.rankBreakdown.find(
+        (r: any) => r.code === "PC",
+      );
+      assert.equal(rankPC.count, 1);
+      assert.equal(rankPC.workbookCurrent, null);
+      assert.equal(rankPC.workbookEstablishment, 0);
+      assert.equal(rankPC.differenceToEstablishment, -1);
+      assert.equal(
+        dashboard.body.data.rankBreakdown.reduce(
+          (sum: number, r: any) => sum + r.count,
+          0,
+        ),
+        3,
+      );
+      const rankPermission = await db.permission.findUniqueOrThrow({
+        where: { code: "fields.rank_history.view" },
+      });
+      await db.rolePermission.delete({
+        where: {
+          roleId_permissionId: { roleId, permissionId: rankPermission.id },
+        },
+      });
+      assert.equal((await agent.get("/api/dashboard")).status, 403);
+      await db.rolePermission.create({
+        data: { roleId, permissionId: rankPermission.id },
+      });
       assert.equal(mainGroup.workbookCached, 99);
       assert.equal(
         dashboard.body.data.groups.reduce(

@@ -14,6 +14,7 @@ export function dashboardRoutes(db: PrismaClient) {
           "fields.import_source.view",
           "fields.assignments.view",
           "fields.service_profile.view",
+          "fields.rank_history.view",
         ].some((p) => !grants.has(p))
       )
         throw new HttpError(403, "PERMISSION_DENIED");
