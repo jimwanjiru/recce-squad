@@ -131,6 +131,8 @@ test("register, edit, search, archive and restore a fictional officer on desktop
           4: "Fictional Specialist Designation",
           8: "1990-02-03T00:00:00.000Z",
           13: "2007",
+          20: "MO",
+          22: "R",
           36: "FICTIONAL_BANK_SOURCE",
         },
         sourceKey,
@@ -156,6 +158,10 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     page.getByText("1990-02-03T00:00:00.000Z", { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByText("2007", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("MO — Main Office", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("R — Recce", { exact: true })).toBeVisible();
   const tabsBox = await page
     .getByRole("tablist", { name: "Officer profile sections" })
     .boundingBox();

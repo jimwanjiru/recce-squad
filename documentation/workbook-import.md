@@ -112,3 +112,8 @@ npm run db:rollback:workbook -- --batch PASTE_BATCH_ID_HERE --backup-confirmed
 ```
 
 The command checks the local operator's grants and all batch officers first. It refuses reviewed, edited, archived or operationally linked officers rather than deleting later work. For an unchanged batch it removes only officers/initial education created by that batch, detaches source links, retains the encrypted source rows and marks the batch ROLLED_BACK, with an audit entry. Repeating rollback is a no-op. A rolled-back file can subsequently be imported again; if another successful batch for the same file still exists, the normal duplicate-file guard applies. Later manual work requires a reviewed recovery or restoration from your protected backup, not a force-delete switch.
+
+
+## Confirmed workbook codes
+
+MO means Main Office. NA means Not Applicable or not deployed to a team/group. R means Recce. Officer source details show these meanings beside the original disposition and membership codes; the other-sheet viewer includes a legend. Original source cells are unchanged. No unit, assignment history, inactive status or strength inclusion/exclusion is inferred solely from these definitions.

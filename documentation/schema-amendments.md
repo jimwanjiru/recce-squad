@@ -26,7 +26,7 @@ Database CHECKs and triggers live in migration SQL because Prisma schema syntax 
 ## Remaining policy decisions
 
 1. Retirement ages, effective dates, exceptions and the handling of policy changes near a retirement date. No actual retirement age is configured.
-2. Unit hierarchy and meanings of FORMATION, DISPOSITION, R, MO and NA; canonical ranks, specialist classification and RSM treatment.
+2. Unit hierarchy and FORMATION/DISPOSITION relationships; canonical ranks, specialist classification and RSM treatment. Code meanings are confirmed: MO = Main Office, NA = Not Applicable / no team or group deployment, R = Recce. These definitions do not determine strength eligibility.
 3. Which status/deployment combinations count toward nominal and operational strength, and approved establishment/promotion-deficit calculations.
 4. The verified opening baseline date, authority for movement effective dates and resolution of unmatched/ambiguous legacy events.
 5. The operational role-to-permission matrix, supervisor scope, retention policy and approved hosting. Only a distinct fictional development role receives permissions in the demo seed.

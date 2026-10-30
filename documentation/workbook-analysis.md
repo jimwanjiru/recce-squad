@@ -40,7 +40,7 @@ Formula results are cached snapshots. ExcelJS does not recalculate them. Do not 
 | S | FORMATION | Restricted source value until hierarchy confirmed; candidate Unit association |
 | T | DISPOSITION | OfficerAssignment.disposition; candidate SubUnit code only after classification |
 | U | KCSE GRADE | OfficerEducation.kcseGrade |
-| V | R | Restricted source value; reporting-membership semantics require confirmation |
+| V | R | R means Recce (confirmed); operational strength inclusion is a separate policy |
 | W | REMARKS | OfficerServiceProfile.serviceRemarks; proposed status/deployment classification needs review |
 | X | ID. NO | Officer.nationalId, string, restricted access |
 | Y | POLICE LAW EXAM (INSP.) | OfficerExamination.score / result after review; not assumed numeric |
@@ -64,7 +64,7 @@ Dates include Excel dates and potential legacy inconsistencies. Honor the workbo
 
 The two rank columns differ on 212 candidate rows. D includes punctuation, gender and specialty suffixes; E is more standardized. Proposed canonical codes: S/AIG, AIG, CP, SSP, SP, ASP, CI, IP, RSM, S/SGT, SGT, CPL and PC. CI aliases include C.I; S/Sgt maps to S/SGT. Alias acceptance is reviewed, not inferred from prefixes. Hierarchy and RSM classification require confirmation before seed data.
 
-Disposition contains MO, HQS, GP1–GP4, RRT, CRT, CTSO, SPEAR and NA. Their appearance as strength-report rows does not prove each is an organizational sub-unit. In particular NA should remain unresolved until its meaning is confirmed. FORMATION is not assumed to equal disposition or duty location. V contains R among candidate records; its operational meaning remains unknown.
+Disposition contains MO, HQS, GP1–GP4, RRT, CRT, CTSO, SPEAR and NA. Their appearance as strength-report rows does not prove each is an organizational sub-unit. The user confirmed MO = Main Office; NA = Not Applicable or not deployed to any team/group; R = Recce. NA is not a unit, inactivity status or automatic strength exclusion. FORMATION is not assumed to equal disposition or duty location. These meanings do not supply historical assignment dates or establish the full organization hierarchy.
 
 NAMES formulas use TODAY, DATEDIF and EDATE for durations, age and retirement warnings. The observed retirement formula does not constitute approved policy. TRIBE uses COUNTIFS on canonical-rank and ethnicity columns and SUM totals; rebuild these from history-aware queries, never duplicate totals in tables.
 
