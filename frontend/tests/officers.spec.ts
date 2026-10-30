@@ -129,6 +129,8 @@ test("register, edit, search, archive and restore a fictional officer on desktop
           2: tag,
           6: "Fictional Browser Officer",
           4: "Fictional Specialist Designation",
+          8: "1990-02-03T00:00:00.000Z",
+          13: "2007",
           36: "FICTIONAL_BANK_SOURCE",
         },
         sourceKey,
@@ -149,6 +151,25 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(
     page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("3 Feb 1990", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("1990-02-03T00:00:00.000Z", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText("2007", { exact: true })).toBeVisible();
+  const tabsBox = await page
+    .getByRole("tablist", { name: "Officer profile sections" })
+    .boundingBox();
+  const panelBox = await page.getByRole("tabpanel").boundingBox();
+  expect(tabsBox!.y + tabsBox!.height).toBeLessThanOrEqual(panelBox!.y);
+  await page.screenshot({ path: ".local/workbook-profile-layout.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
   await page
     .getByRole("button", { name: "Mark checked", exact: true })
     .first()

@@ -1,3 +1,4 @@
+import { workbookValue, reviewTime } from "../lib/workbook-format";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
@@ -68,7 +69,7 @@ function OtherSheets({ batchId }: { batchId: string }) {
           {query.data.data.map((row) => (
             <div key={row.row}>
               <strong>Row {row.row}</strong>
-              <dl className="detail-grid">
+              <dl className="detail-grid workbook-grid">
                 {row.cells
                   .filter((c) => c.value)
                   .map((cell) => (
@@ -80,7 +81,7 @@ function OtherSheets({ batchId }: { batchId: string }) {
                           overflowWrap: "anywhere",
                         }}
                       >
-                        {cell.value}
+                        {workbookValue(cell.value)}
                       </dd>
                     </div>
                   ))}
@@ -142,7 +143,7 @@ export function WorkbookDetails({
   if (query.isPending) return <Loading />;
   if (query.error) return <ErrorNotice error={query.error} />;
   return (
-    <div>
+    <div className="workbook-details">
       <p>
         Original workbook information awaiting review. Checking a source field
         records your review; official ranks, assignments and historical dates
@@ -166,24 +167,25 @@ export function WorkbookDetails({
               {row.sheet}, row {row.row}
             </strong>
           </p>
-          <dl className="detail-grid">
+          <dl className="detail-grid workbook-grid">
             {row.fields
               .filter((field) => !columns || columns.includes(field.column))
               .map((field) => (
-                <div key={field.column} style={{ minWidth: 0 }}>
+                <div key={field.column} className="workbook-field">
                   <dt>{field.label}</dt>
                   <dd
                     style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
                   >
-                    {field.value || "Blank in source"}
+                    {workbookValue(field.value, field.column) ||
+                      "Blank in source"}
                   </dd>
-                  <p>
+                  <p className="workbook-review-status">
                     {field.review
                       ? (field.review.decision === "CHECKED"
                           ? "Source checked"
                           : "Needs correction") +
                         " · " +
-                        new Date(field.review.reviewedAt).toLocaleString()
+                        reviewTime(field.review.reviewedAt)
                       : "Pending verification"}
                   </p>
                   {field.canReview && (
