@@ -27,7 +27,8 @@
     "db:recover:mariadb": "tsx tools/migrate.ts --recover-mariadb-constraints",
     "workbook:import": "tsx tools/import-workbook.ts",
     "test:workbook:integration": "tsx backend/tests/workbook-import.test.ts",
-    "typecheck:import": "tsc --noEmit --target es2022 --module nodenext --esModuleInterop --skipLibCheck --types node tools/import-workbook.ts"
+    "typecheck:import": "tsc --noEmit --target es2022 --module nodenext --esModuleInterop --skipLibCheck --types node tools/import-workbook.ts",
+    "db:seed:workbook": "node tools/seed-workbook.cjs"
   },
   "repository": {
     "type": "git",

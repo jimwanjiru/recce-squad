@@ -12,6 +12,24 @@ The supported source is the original 38-column `RECCE DETAILED.xlsx` layout, inc
 - Preserves the original rank columns, specialist wording, county/district and ethnicity values, service remarks, courses, exams, awards, discipline, bank values, CHANGES events and other worksheet content in encrypted staging. Those fields are **not yet populated as operational records**, and rank/unit filters remain empty until reviewed mappings and dates are applied. No retirement/strength policies are activated; calculated/formula totals are not treated as personnel records.
 - Does not overwrite any officer with an existing force number, including archived officers. Conflicting rows are held, not merged. Duplicate force numbers within the source are all held. A repeated identical file is a no-op, serialized against other imports. A changed file requires a fresh preview hash.
 
+## One-command seeder
+
+After updating the project, run `npm ci --ignore-scripts` and `npm run local:build` if needed. Copy the private workbook to `reference/RECCE DETAILED.xlsx`, stop the app and back up your database. Then run from the main project folder:
+
+```cmd
+npm run db:seed:workbook -- --backup-confirmed
+```
+
+This calls `tools/seed-workbook.cjs`, computes the file hash automatically, and invokes the same transactional importer described below. It creates all eligible core officer records and encrypted review staging; it does not invent historical dates or approve unresolved policies. Identical workbooks are skipped and existing officers are preserved. No manual hash copying or `local:configure` is needed.
+
+Optional read-only preview:
+
+```cmd
+npm run db:seed:workbook -- --preview
+```
+
+For another file location append `--file "C:\path\RECCE DETAILED.xlsx"`. For another administrator append `--actor "your-email"`. The named account must have the importer permissions. Keep `.env`, `.local`, the source workbook and generated import encryption key private. This real-workbook seeder is separate from `npm run db:seed`, which remains fictional-development-only.
+
 ## 1. Back up and update
 
 Stop the application with Ctrl+C. Use your database client's export/backup function to save **structure and data** for `recce_dev` (or your configured database) to a private backup location. Keep your `.env` and `.local` folder.
