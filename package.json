@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "RECCE officers personnel management system",
   "scripts": {
-    "test": "node tools/design.test.cjs && node --test tools/mariadb-recovery.test.cjs && tsx backend/tests/unit.test.ts",
+    "test": "node tools/design.test.cjs && node --test tools/mariadb-recovery.test.cjs tools/workbook-import.test.cjs && tsx backend/tests/unit.test.ts",
     "schema:validate": "node tools/validate-schema.cjs",
     "workbook:analyze": "node tools/analyze-workbook.cjs",
     "test:integration": "tsx backend/tests/integration.test.ts && tsx backend/tests/officers.test.ts && tsx backend/tests/organization.test.ts",
@@ -24,7 +24,10 @@
     "local:start": "node tools/native-launch.cjs",
     "local:access": "node tools/native-launch.cjs --access",
     "local:build": "npm run db:generate && npm run schema:validate && npm run build",
-    "db:recover:mariadb": "tsx tools/migrate.ts --recover-mariadb-constraints"
+    "db:recover:mariadb": "tsx tools/migrate.ts --recover-mariadb-constraints",
+    "workbook:import": "tsx tools/import-workbook.ts",
+    "test:workbook:integration": "tsx backend/tests/workbook-import.test.ts",
+    "typecheck:import": "tsc --noEmit --target es2022 --module nodenext --esModuleInterop --skipLibCheck --types node tools/import-workbook.ts"
   },
   "repository": {
     "type": "git",

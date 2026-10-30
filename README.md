@@ -21,7 +21,7 @@ Keep that terminal open. In a second terminal in the same folder, run `npm run l
 The compiled frontend and backend share one Node.js server. Python, Bash, Docker and a separate frontend development server are not required. The [Docker installation](documentation/local-installation.md) remains optional.
 
 
-Phase 4 organizational management builds on the React officer interface and secure Express/Prisma/MySQL backend. Manage ranks, rank spellings, unit hierarchies, sub-units, verified assignment baselines, deployments and externally approved staffing establishments. Approval-based personnel movements, calculated reports and workbook import/export remain subsequent phases.
+Phase 4 organizational management builds on the React officer interface and secure Express/Prisma/MySQL backend. Manage ranks, rank spellings, unit hierarchies, sub-units, verified assignment baselines, deployments and externally approved staffing establishments. A [local workbook importer](documentation/workbook-import.md) now creates core officer records with encrypted source staging. Approval-based personnel movements, calculated reports, source-review screens and workbook export remain subsequent phases.
 
 - [Updated schema and remaining decisions](documentation/schema-amendments.md)
 - [Complete Prisma schema](backend/prisma/schema.prisma)

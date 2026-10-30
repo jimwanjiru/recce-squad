@@ -1,0 +1,64 @@
+# Import the actual workbook on your laptop
+
+This command runs directly with Node.js and your existing local MySQL 8.4 or MariaDB 10.11 database. It uses `.env`, does not require Docker or `local:configure`, and does not upload records to GitHub or a cloud database. Never commit or share the workbook, `.env`, `.local`, database dumps or personnel screenshots.
+
+## What this import does
+
+The supported source is the original 38-column `RECCE DETAILED.xlsx` layout, including the NAMES worksheet. The original preview found **1,492 candidate officers** eligible for core creation, with seven rows carrying field-review warnings. Your preview is authoritative if your file differs.
+
+- Creates new officer names/force numbers, payroll numbers, national IDs, gender, phone, valid complete birth/enlistment dates and education/KCSE values. Numeric identifiers already missing leading zeros cannot be repaired by guessing; explicit zero-padding formats are respected. Original cell values and number formats are retained in encrypted source staging.
+- Marks every imported officer **UNVERIFIED**. This does not assert their current service status or strength eligibility.
+- Holds partial, ambiguous, invalid or inconsistent dates for review. Creates no rank, assignment, deployment, movement or status-history effective dates. Source promotion dates alone are not verified rank-history start dates.
+- Preserves the original rank columns, specialist wording, county/district and ethnicity values, service remarks, courses, exams, awards, discipline, bank values, CHANGES events and other worksheet content in encrypted staging. Those fields are **not yet populated as operational records**, and rank/unit filters remain empty until reviewed mappings and dates are applied. No retirement/strength policies are activated; calculated/formula totals are not treated as personnel records.
+- Does not overwrite any officer with an existing force number, including archived officers. Conflicting rows are held, not merged. Duplicate force numbers within the source are all held. A repeated identical file is a no-op, serialized against other imports. A changed file requires a fresh preview hash.
+
+## 1. Back up and update
+
+Stop the application with Ctrl+C. Use your database client's export/backup function to save **structure and data** for `recce_dev` (or your configured database) to a private backup location. Keep your `.env` and `.local` folder.
+
+Update from GitHub (`git pull` if cloned, or extract the latest ZIP and replace project code while preserving private files). From the main project folder, run:
+
+```cmd
+npm ci --ignore-scripts
+npm run local:build
+```
+
+The database must already have the completed migrations and your application administrator account. If setup is incomplete, follow the native installation guide first. Do not use the fictional `db:seed` command for actual records.
+
+## 2. Place the workbook locally and preview
+
+Create `reference` inside the main project folder and copy your original workbook there, without editing it. The `reference` folder is Git-ignored. In Windows Command Prompt:
+
+```cmd
+npm run workbook:import -- --file "reference\RECCE DETAILED.xlsx"
+```
+
+Preview reads the file and prints only a SHA-256 hash, sheet names and aggregate counts. It makes **no database changes**. The hash binds the write command to the exact file previewed. Review that the counts match your intended source.
+
+## 3. Commit the import
+
+After making the backup, replace `PASTE_THE_PREVIEW_SHA256` below with the full hash printed by your preview:
+
+```cmd
+npm run workbook:import -- --file "reference\RECCE DETAILED.xlsx" --commit --sha256 PASTE_THE_PREVIEW_SHA256 --backup-confirmed
+```
+
+By default the audit actor is `admin@recce.local`. If you use another administrator email, append `--actor "your-email"`. That account must be active and have imports.commit, officers.create and the field-write permissions used by this import. The command uses local machine/database access and checks the named actor's grants; it is an operator CLI, not a password-authenticated web endpoint. Run only from your trusted private account on your laptop.
+
+It prints created/held counts and a batch identifier. The operation is one database transaction: officer inserts, staged rows, batch counts and audit metadata commit together. If a database error occurs, that transaction rolls back. It does not reset the database or erase previous batches. A retry of a successful identical import does not insert again.
+
+## 4. Open the register
+
+```cmd
+npm run local:start
+```
+
+Open **http://localhost:3000**, sign in with your existing account, and open the officer register. Clear rank, unit or status filters if they exclude UNVERIFIED officers. Profile fields still require their normal view permissions.
+
+The import generates `.local/workbook-import.key` for authenticated AES-256-GCM encryption of source rows and unresolved-date payloads. Back up this key privately **after the first import**, together with the database and original workbook. Without it the staged source cannot be decrypted. Do not replace/delete the key or publish it. Windows users should restrict the `.local` folder to their own account; POSIX owner-only modes do not substitute for Windows ACLs. The source-review UI and historical-record promotion remain later work; encrypted staging preserves those values for that review.
+
+If anything fails, share only the error code and aggregate output. Do not paste rows, account numbers, `.env` contents or encryption keys.
+
+## Validation
+
+Fictional tests cover ambiguous dates, conflicting birth/enlistment chronology, source duplicates, encrypted bank/source values, permission denial, transaction rollback after a late failure, repeated-file idempotence, changed-file hashes and preserving existing officers. The actual workbook is used only for an aggregate preview in the cloud workspace; real records are written only when you run the commit command on your laptop.
