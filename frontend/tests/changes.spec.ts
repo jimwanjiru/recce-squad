@@ -17,6 +17,7 @@ const db = createDatabase(url),
 let userId = "",
   roleId = "",
   officerId = "",
+  retiredOfficerId = "",
   batchId = "",
   approverRoleExisted = false;
 const year = Number(
@@ -67,6 +68,39 @@ test.beforeAll(async () => {
     },
   });
   officerId = officer.id;
+  retiredOfficerId = (
+    await db.officer.create({
+      data: {
+        forceNumber: tag + "-retired",
+        fullName: "Fictional Retired UI Officer",
+        recordStatus: "RETIRED",
+        dateOfBirth: new Date("1960-04-20T00:00:00Z"),
+        phone: "FICTIONAL_PHONE",
+      },
+    })
+  ).id;
+  const retirementId = randomUUID();
+  await db.officerChange.create({
+    data: {
+      id: retirementId,
+      officerId: retiredOfficerId,
+      recordedById: userId,
+      eventType: "RETIREMENT",
+      effectiveDate: new Date(`${past - 1}-06-01T00:00:00Z`),
+      workbookCells: seal(
+        {
+          "2": tag + "-retired",
+          "3": "C.I(W)",
+          "4": "CI",
+          "5": "Fictional Retired UI Officer",
+          "8": `${past - 1}-06-01`,
+          "9": "FICTIONAL_RETIREMENT_REFERENCE",
+        },
+        key,
+        "changes:" + retirementId,
+      ),
+    },
+  });
   batchId = (
     await db.importBatch.create({
       data: {
@@ -100,6 +134,9 @@ test.beforeAll(async () => {
   });
 });
 test.afterAll(async () => {
+  const officerFilter = {
+    officerId: { in: [officerId, retiredOfficerId].filter(Boolean) },
+  };
   const text = await readFile(
       "backend/prisma/migrations/20261030120000_officer_changes/migration.sql",
       "utf8",
@@ -112,7 +149,7 @@ test.afterAll(async () => {
   );
   try {
     const rows = await db.officerChange.findMany({
-      where: { officerId },
+      where: officerFilter,
       select: { id: true, amendsId: true },
     });
     while (rows.length) {
@@ -125,13 +162,15 @@ test.afterAll(async () => {
   } finally {
     await db.$executeRawUnsafe(guard);
   }
-  await db.officerStatusHistory.deleteMany({ where: { officerId } });
-  await db.personnelMovement.deleteMany({ where: { officerId } });
-  await db.officerAssignment.deleteMany({ where: { officerId } });
-  await db.officerRankHistory.deleteMany({ where: { officerId } });
+  await db.officerStatusHistory.deleteMany({ where: officerFilter });
+  await db.personnelMovement.deleteMany({ where: officerFilter });
+  await db.officerAssignment.deleteMany({ where: officerFilter });
+  await db.officerRankHistory.deleteMany({ where: officerFilter });
   await db.importRow.deleteMany({ where: { batchId } });
   if (batchId) await db.importBatch.delete({ where: { id: batchId } });
   if (officerId) await db.officer.delete({ where: { id: officerId } });
+  if (retiredOfficerId)
+    await db.officer.delete({ where: { id: retiredOfficerId } });
   const users = await db.user.findMany({
       where: { email: { in: [email, reviewEmail] } },
       select: { id: true },
@@ -201,6 +240,24 @@ test("record, edit, delete and independently approve officer changes without mix
     exact: true,
   });
   await expect(table.getByRole("columnheader")).toHaveCount(18);
+  await table.getByRole("button", { name: "View", exact: true }).click();
+  let details = page.getByRole("dialog", {
+    name: "Officer change details",
+    exact: true,
+  });
+  await expect(
+    details
+      .getByRole("region", { name: "Recorded change details", exact: true })
+      .locator("dl > div"),
+  ).toHaveCount(13);
+  await expect(
+    details.getByText("FICTIONAL_UI_LAST_COLUMN", { exact: true }),
+  ).toBeVisible();
+  await expect(details.locator("input, textarea, select")).toHaveCount(0);
+  await expect(
+    details.getByRole("button", { name: "Save draft", exact: true }),
+  ).toHaveCount(0);
+  await details.getByRole("button", { name: "Close", exact: true }).click();
   await table.getByRole("button", { name: "Edit", exact: true }).click();
   dialog = page.getByRole("dialog", {
     name: "Officer change record",
@@ -298,6 +355,34 @@ test("record, edit, delete and independently approve officer changes without mix
   });
   expect(officer.recordStatus).toBe("TRANSFERRED_OUT");
   expect(officer.deletedAt).toBeNull();
+  await table.getByRole("button", { name: "View", exact: true }).click();
+  details = page.getByRole("dialog", {
+    name: "Officer change details",
+    exact: true,
+  });
+  await expect(
+    details.getByText("TRANSFERRED OUT", { exact: true }),
+  ).toBeVisible();
+  await expect(details.getByText("APPLIED", { exact: true })).toBeVisible();
+  await expect(
+    details.getByText("FICTIONAL_UI_EDITED_LAST_COLUMN", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    details.getByRole("link", {
+      name: "Open full officer record",
+      exact: true,
+    }),
+  ).toHaveAttribute("href", "/officers/" + officerId);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await details.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  );
+  await page.keyboard.press("Escape");
+  await expect(details).toHaveCount(0);
+  await expect(
+    table.getByRole("button", { name: "View", exact: true }),
+  ).toBeFocused();
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.screenshot({ path: ".local/changes-register-layout.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
@@ -311,5 +396,43 @@ test("record, edit, delete and independently approve officer changes without mix
   await expect(
     table.getByText("FICTIONAL_LEGACY_LAST_COLUMN", { exact: true }),
   ).toBeAttached();
+  await page.getByRole("tab", { name: "Yearly register", exact: true }).click();
+  await page
+    .getByLabel("Change effective year", { exact: true })
+    .selectOption(String(past - 1));
+  await page
+    .getByLabel("Change event filter", { exact: true })
+    .selectOption("RETIREMENT");
+  await table.getByRole("button", { name: "View", exact: true }).click();
+  details = page.getByRole("dialog", {
+    name: "Officer change details",
+    exact: true,
+  });
+  const identity = details.getByRole("region", {
+    name: "Officer details",
+    exact: true,
+  });
+  await expect(identity.getByText("RETIRED", { exact: true })).toBeVisible();
+  await expect(
+    identity.getByText("20 Apr 1960", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    identity.getByText("FICTIONAL_PHONE", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    details.getByText("FICTIONAL_RETIREMENT_REFERENCE", { exact: true }),
+  ).toBeVisible();
+  await details
+    .getByRole("link", { name: "Open full officer record", exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    new RegExp("/officers/" + retiredOfficerId + "$"),
+  );
+  await expect(
+    page.getByRole("heading", {
+      name: "Fictional Retired UI Officer",
+      exact: true,
+    }),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });

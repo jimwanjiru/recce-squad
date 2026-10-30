@@ -70,6 +70,7 @@ export function Changes() {
     [type, setType] = useState("TRANSFER_OUT"),
     [status, setStatus] = useState("");
   const [form, setForm] = useState<FormState | null>(null),
+    [details, setDetails] = useState<Change | null>(null),
     [confirm, setConfirm] = useState<{ row: Change; action: string } | null>(
       null,
     ),
@@ -432,20 +433,19 @@ export function Changes() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
-                                  setForm({
-                                    row,
-                                    readOnly:
-                                      !meta.canCreate || row.status !== "DRAFT",
-                                  })
-                                }
+                                onClick={() => setDetails(row)}
                               >
-                                {meta.canCreate && row.status === "DRAFT"
-                                  ? "Edit"
-                                  : "View"}
+                                View
                               </Button>
                               {row.status === "DRAFT" && meta.canCreate && (
                                 <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setForm({ row })}
+                                  >
+                                    Edit
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -581,6 +581,13 @@ export function Changes() {
           </>
         )}
       </section>
+      {details && (
+        <ChangeDetails
+          row={details}
+          options={meta}
+          close={() => setDetails(null)}
+        />
+      )}
       {form && (
         <ChangeForm
           state={form}
@@ -621,6 +628,188 @@ export function Changes() {
         error={action.error}
       />
     </div>
+  );
+}
+function ChangeDetails({
+  row,
+  options,
+  close,
+}: {
+  row: Change;
+  options: Options;
+  close: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const officer = useQuery({
+    queryKey: ["officer", row.officerId],
+    queryFn: () => api<{ data: Officer }>("/officers/" + row.officerId),
+  });
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  const event = options.types.find((t) => t.code === row.eventType)!;
+  const current = officer.data?.data;
+  const personalFields: [keyof Officer, string, boolean?][] = [
+    ["payrollNumber", "Payroll number"],
+    ["nationalId", "National ID"],
+    ["dateOfBirth", "Birth date", true],
+    ["gender", "Gender"],
+    ["phone", "Phone"],
+    ["dateEnlisted", "Enlistment date", true],
+  ];
+  const changeType =
+    row.eventType === "TRANSFER_OUT" || row.eventType === "SUB_UNIT_TRANSFER"
+      ? "Transfer"
+      : event.label;
+  const dismiss = () => {
+    dialog.current?.close();
+    close();
+  };
+  return (
+    <dialog
+      ref={dialog}
+      className="changes-dialog changes-details-dialog"
+      aria-label="Officer change details"
+      onCancel={(event) => {
+        event.preventDefault();
+        dismiss();
+      }}
+    >
+      <div className="changes-dialog-heading">
+        <h2>
+          {event.label} — {row.officer.fullName}
+        </h2>
+        <Button variant="outline" onClick={dismiss}>
+          Close
+        </Button>
+      </div>
+      <section aria-label="Change summary">
+        <h3>Change summary</h3>
+        <dl className="detail-grid">
+          <div>
+            <dt>Change type</dt>
+            <dd>{event.label}</dd>
+          </div>
+          <div>
+            <dt>Approval status</dt>
+            <dd>{row.status}</dd>
+          </div>
+          <div>
+            <dt>Effective date</dt>
+            <dd>{dateLabel(row.effectiveDate)}</dd>
+          </div>
+          <div>
+            <dt>Effective year</dt>
+            <dd>
+              {row.effectiveDate?.slice(0, 4) ||
+                "Undated — awaiting date verification"}
+            </dd>
+          </div>
+          <div>
+            <dt>Recorded by</dt>
+            <dd>{row.recordedBy?.name || "Not recorded"}</dd>
+          </div>
+          <div>
+            <dt>Approved by</dt>
+            <dd>{row.approvedBy?.name || "Not yet approved"}</dd>
+          </div>
+          {row.targetUnitId && (
+            <div>
+              <dt>Receiving unit</dt>
+              <dd>
+                {options.units.find((u) => u.id === row.targetUnitId)?.name ||
+                  "Reference unavailable"}
+              </dd>
+            </div>
+          )}
+          {row.targetSubUnitId && (
+            <div>
+              <dt>Receiving sub-unit</dt>
+              <dd>
+                {options.subUnits.find((s) => s.id === row.targetSubUnitId)
+                  ?.name || "Reference unavailable"}
+              </dd>
+            </div>
+          )}
+          {row.targetRankId && (
+            <div>
+              <dt>Resulting rank</dt>
+              <dd>
+                {options.ranks.find((r) => r.id === row.targetRankId)?.name ||
+                  "Reference unavailable"}
+              </dd>
+            </div>
+          )}
+        </dl>
+      </section>
+      <section aria-label="Officer details">
+        <h3>Officer details</h3>
+        <p>
+          Current registered details. The details recorded with this change are
+          shown below.
+        </p>
+        {officer.isPending && <Loading />}
+        {officer.error && <ErrorNotice error={officer.error} />}
+        {current && (
+          <dl className="detail-grid">
+            <div>
+              <dt>Force number</dt>
+              <dd>{current.forceNumber}</dd>
+            </div>
+            <div>
+              <dt>Name</dt>
+              <dd>{current.fullName}</dd>
+            </div>
+            <div>
+              <dt>Personnel status</dt>
+              <dd>{current.recordStatus.replaceAll("_", " ")}</dd>
+            </div>
+            <div>
+              <dt>Record state</dt>
+              <dd>{current.deletedAt ? "Archived" : "Not archived"}</dd>
+            </div>
+            {personalFields
+              .filter(([key]) => key in current)
+              .map(([key, label, date]) => (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {date
+                      ? dateLabel(current[key] as string | null)
+                      : String(current[key] || "Not recorded")}
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        )}
+        <p>
+          <Link to={"/officers/" + row.officerId}>
+            Open full officer record
+          </Link>
+        </p>
+      </section>
+      <section aria-label="Recorded change details">
+        <h3>Recorded change details</h3>
+        <dl className="detail-grid">
+          {event.columns.map((c) => (
+            <div key={c.column}>
+              <dt>{c.label}</dt>
+              <dd>
+                {c.label === "Change type"
+                  ? changeType
+                  : workbookValue(row.cells[String(c.column)] || "") ||
+                    "Not recorded"}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <div className="changes-dialog-actions">
+        <Button variant="outline" onClick={dismiss}>
+          Done
+        </Button>
+      </div>
+    </dialog>
   );
 }
 function ChangeForm({

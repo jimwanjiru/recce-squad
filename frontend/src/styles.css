@@ -2197,6 +2197,22 @@ td.mono {
   font-size: 15px;
   margin: 24px 0 16px;
 }
+.changes-details-dialog .changes-dialog-heading h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.changes-details-dialog .changes-dialog-heading button {
+  flex-shrink: 0;
+}
+.changes-details-dialog section + section {
+  margin-top: 24px;
+  padding-top: 8px;
+  border-top: 1px solid #e5ecf5;
+}
+.changes-details-dialog a {
+  color: #245fbd;
+  text-decoration: underline;
+}
 .changes-dialog p {
   font-size: 12px;
   color: #63748d;

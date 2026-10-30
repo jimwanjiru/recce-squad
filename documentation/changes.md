@@ -59,6 +59,8 @@ MySQL and MariaDB checks cover required officer identity, all 38 columns, source
 
 ## Corrected Transfers out layout
 
+Every yearly-register row has **View**, including drafts, submitted and applied changes. View opens a read-only dialog with all named event columns, effective date/year, approval information and the linked officer's current registered details. **Open full officer record** leads to the retained profile, including after transfer out, retirement or archiving. Personal fields use the existing permission-filtered officer endpoint. View does not submit or change records; Edit remains a separate action for authorized draft editors.
+
 The agreed order is S/NO; Force number; Rank 1; Rank 2; Name; Station; Sub-unit; Transferred to; GSU letter/signal reference; GSU reference date; Change type; KPS letter/signal reference; KPS reference date. Rank 1 retains specifications such as C.I(W); Rank 2 is the overall CI rank. Change type is derived from the selected event (Transfer, Death, Retirement, etc.), not a second conflicting manually entered event. Effective date remains a separate system field for year grouping.
 
 The transfer register opens on the Transfer out filter. Original positions N/O supply KPS references/dates; the layout does not relocate or erase their stored values. Draft edits merge supplied fields with existing encrypted values, preserving any legacy source positions not shown in the corrected form. Other event sections show known header fields and will be agreed separately; no generic Additional source value placeholders are generated.
