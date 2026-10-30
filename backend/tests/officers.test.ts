@@ -431,17 +431,45 @@ test("NAMES ranks preserve specifications, group CPL separately from CP, paginat
     ).body;
     assert.equal(reverse.data[0].rank2, "PC");
     const driverId = page.data[0].id;
-    await db.officerRankHistory.create({
-      data: {
-        officerId: driverId,
-        rankId,
-        effectiveFrom: new Date("2020-01-01"),
-        datesVerifiedAt: new Date(),
-        datesVerifiedById: adminId,
-        originalRankSpelling: "Fictional verified rank",
-        specialistDesignation: "Fictional specialist",
-      },
-    });
+    const baselineBody = {
+      rankId,
+      effectiveFrom: "2020-01-01",
+      datesVerified: true,
+      originalRankSpelling: "Fictional verified rank",
+      specialistDesignation: "Fictional specialist",
+      referenceNumber: null,
+    };
+    const baselineUrl = "/api/officers/" + driverId + "/rank-baseline";
+    await post(baselineUrl, { ...baselineBody, effectiveFrom: "2020" }).expect(
+      422,
+    );
+    await post(baselineUrl, { ...baselineBody, datesVerified: false }).expect(
+      422,
+    );
+    await post(baselineUrl, {
+      ...baselineBody,
+      effectiveFrom: "2999-01-01",
+    }).expect(422);
+    await reader
+      .post(baselineUrl)
+      .set("Origin", origin)
+      .set("X-CSRF-Token", readerCsrf)
+      .send(baselineBody)
+      .expect(403);
+    const attempts = await Promise.all([
+      post(baselineUrl, baselineBody),
+      post(baselineUrl, baselineBody),
+    ]);
+    assert.deepEqual(attempts.map((r) => r.status).sort(), [201, 409]);
+    assert.equal(
+      await db.officerRankHistory.count({ where: { officerId: driverId } }),
+      1,
+    );
+    assert.equal(
+      (await db.officer.findUniqueOrThrow({ where: { id: driverId } }))
+        .recordStatus,
+      "ACTIVE",
+    );
     const promoted = (
       await admin
         .get(`/api/officers?q=${encodeURIComponent(sha)}&sort=rank`)

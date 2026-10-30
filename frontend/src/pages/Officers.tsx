@@ -303,6 +303,20 @@ export function Officers() {
             </select>
           )}
         </div>
+        {can("fields.rank_history.view") && (
+          <details className="rank-verification-guide">
+            <summary>
+              What does “Workbook · awaiting verification” mean?
+            </summary>
+            <p>
+              This rank is taken from the workbook. Open Review rank to record
+              the first verified rank with its actual effective date and any
+              available document reference. Checking a workbook field records a
+              source review; it does not create verified rank history or verify
+              the officer’s service status.
+            </p>
+          </details>
+        )}
         {selected.length > 0 && (
           <div className="selection-bar">
             <span>{selected.length} selected</span>
@@ -347,7 +361,10 @@ export function Officers() {
           />
         ) : (
           <div className="table-scroll">
-            <table>
+            <table
+              className="officer-directory-table"
+              aria-label="Officer directory"
+            >
               <thead>
                 <tr>
                   {can("officers.archive") && archive === "active" && (
@@ -366,20 +383,24 @@ export function Officers() {
                       />
                     </th>
                   )}
-                  <th>
+                  <th className="officer-identity-column">
                     <button onClick={() => sortBy("fullName")}>
                       Officer <ArrowUpDown size={13} />
                     </button>
                   </th>
-                  <th>
+                  <th className="officer-force-column">
                     <button onClick={() => sortBy("forceNumber")}>
                       Force number <ArrowUpDown size={13} />
                     </button>
                   </th>
                   {can("fields.rank_history.view") && (
                     <>
-                      <th>Rank 1 · rank / specialization</th>
-                      <th>Rank 2 · overall rank</th>
+                      <th className="officer-rank-column">
+                        Rank 1 · rank / specialization
+                      </th>
+                      <th className="officer-rank-column">
+                        Rank 2 · overall rank
+                      </th>
                     </>
                   )}
                   <th>Record state</th>
@@ -397,9 +418,7 @@ export function Officers() {
                       </button>
                     </th>
                   )}
-                  <th>
-                    <span className="sr-only">Actions</span>
-                  </th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -421,27 +440,30 @@ export function Officers() {
                         />
                       </td>
                     )}
-                    <td>
+                    <td className="officer-identity-column">
                       <Link to={"/officers/" + o.id} className="officer-link">
-                        <span className="officer-avatar">
+                        <span className="officer-avatar" aria-hidden="true">
                           {o.fullName
                             .split(" ")
                             .slice(0, 2)
                             .map((x) => x[0])
                             .join("")}
                         </span>
-                        <span>
-                          {o.fullName}
-                          <small>Personnel record</small>
+                        <span className="officer-identity-text">
+                          <span className="officer-name">{o.fullName}</span>
+                          <small>View officer record</small>
                         </span>
                       </Link>
                     </td>
-                    <td className="mono" title={o.forceNumber}>
+                    <td
+                      className="mono officer-force-column"
+                      title={o.forceNumber}
+                    >
                       {o.forceNumber}
                     </td>
                     {can("fields.rank_history.view") && (
                       <>
-                        <td>
+                        <td className="officer-rank-column">
                           {o.rank1 || "—"}
                           {o.specialistDesignation && (
                             <small className="roster-source-label">
@@ -449,17 +471,29 @@ export function Officers() {
                             </small>
                           )}
                         </td>
-                        <td>
-                          {o.rank2 === "UNKNOWN"
-                            ? "Not recorded / unmapped"
-                            : o.rank2 || "—"}
+                        <td className="officer-rank-column">
+                          <strong className="officer-overall-rank">
+                            {o.rank2 === "UNKNOWN"
+                              ? "Not recorded / unmapped"
+                              : o.rank2 || "—"}
+                          </strong>
                           <small className="roster-source-label">
                             {o.rankSource === "WORKBOOK"
                               ? "Workbook · awaiting verification"
                               : o.rankSource === "VERIFIED"
                                 ? "Verified current rank"
-                                : ""}
+                                : o.rankSource === "DATABASE"
+                                  ? "Imported rank"
+                                  : ""}
                           </small>
+                          {o.rankSource === "WORKBOOK" && (
+                            <Link
+                              className="rank-review-link"
+                              to={"/officers/" + o.id + "?tab=ranks"}
+                            >
+                              Review rank
+                            </Link>
+                          )}
                         </td>
                       </>
                     )}
@@ -486,11 +520,12 @@ export function Officers() {
                     )}
                     <td>
                       <Link
-                        className="row-action"
+                        className="row-action officer-view-link"
                         to={"/officers/" + o.id}
                         aria-label={`View ${o.forceNumber}`}
                       >
                         <ArrowUpRight size={18} />
+                        View
                       </Link>
                     </td>
                   </tr>

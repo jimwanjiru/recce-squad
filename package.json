@@ -29,6 +29,7 @@
     "test:workbook:integration": "tsx backend/tests/workbook-import.test.ts",
     "typecheck:import": "tsc --noEmit --target es2022 --module nodenext --esModuleInterop --skipLibCheck --types node tools/import-workbook.ts tools/rollback-workbook.ts",
     "db:seed:workbook": "node tools/seed-workbook.cjs",
+    "db:seed:officers": "node tools/seed-workbook.cjs",
     "db:rollback:workbook": "tsx tools/rollback-workbook.ts",
     "test:changes": "tsx backend/tests/changes.test.ts"
   },

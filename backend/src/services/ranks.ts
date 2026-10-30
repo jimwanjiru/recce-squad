@@ -56,11 +56,14 @@ export function currentRankReferences<
 export type OfficerRanks = {
   rank1: string;
   rank2: string;
-  rankSource: "VERIFIED" | "WORKBOOK" | "UNRECORDED";
+  rankSource: "VERIFIED" | "DATABASE" | "WORKBOOK" | "UNRECORDED";
   specialistDesignation?: string | null;
 };
 export async function officerRanks(
-  db: Pick<PrismaClient, "officerRankHistory" | "importRow">,
+  db: Pick<
+    PrismaClient,
+    "officerRankHistory" | "officerRankSnapshot" | "importRow"
+  >,
   officers: { id: string; forceNumber: string }[],
   allowSource: boolean,
 ) {
@@ -96,6 +99,20 @@ export async function officerRanks(
         rank2: overallRank(history.rank.code),
         rankSource: "VERIFIED",
         specialistDesignation: history.specialistDesignation,
+      });
+    }
+    const snapshots = await db.officerRankSnapshot.findMany({
+      where: {
+        officerId: { in: ids.filter((id) => !verifiedIds.has(id)) },
+        sourceRow: { batch: { status: { not: "ROLLED_BACK" } } },
+      },
+    });
+    for (const snapshot of snapshots) {
+      verifiedIds.add(snapshot.officerId);
+      result.set(snapshot.officerId, {
+        rank1: snapshot.rank1,
+        rank2: snapshot.rankCode,
+        rankSource: "DATABASE",
       });
     }
     if (!allowSource) continue;

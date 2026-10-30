@@ -25,6 +25,7 @@ Phase 4 organizational management builds on the React officer interface and secu
 
 - [CHANGES register, yearly CRUD and independent approval](documentation/changes.md)
 - [Officer dashboard and workbook count definitions](documentation/dashboard.md)
+- [Seed actual officer data locally and understand rank verification](documentation/names-ranks.md)
 - [Updated schema and remaining decisions](documentation/schema-amendments.md)
 - [Complete Prisma schema](backend/prisma/schema.prisma)
 - [Relationships](documentation/relationships.md)
@@ -34,7 +35,7 @@ Phase 4 organizational management builds on the React officer interface and secu
 - [Backend setup and authentication](documentation/backend-development.md)
 - [Validation evidence](documentation/validation.md)
 
-No actual personnel data is committed or imported. Production retirement/strength policies remain inactive. Fictional seed data is explicitly opt-in and rejected in production.
+No actual personnel data is committed to GitHub or imported into cloud test databases. Actual workbook seeding runs on your localhost; production retirement/strength policies remain inactive. Fictional seed data is explicitly opt-in and rejected in production.
 
 For native development only: Node.js 24, npm 11 and MySQL 8.4 are required. Start with `npm ci --ignore-scripts`, `npm run db:generate`, then follow the development guide to configure MySQL, migrate and seed. Run `npm test`, `npm run typecheck`, `npm run typecheck:frontend`, `npm run build`, and, with a dedicated test database configured, `npm run test:integration`.
 

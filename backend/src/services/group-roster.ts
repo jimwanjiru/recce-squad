@@ -73,6 +73,7 @@ export async function groupRoster(
             forceNumber: true,
             fullName: true,
             recordStatus: true,
+            rankSnapshot: { select: { rankCode: true, rank1: true } },
             rankHistories: {
               where: effective,
               select: {
@@ -131,7 +132,11 @@ export async function groupRoster(
       const isRecce = sourceText(raw["22"]).trim().toUpperCase() === "R";
       counts[group] = (counts[group] || 0) + 1;
       if (isRecce) counts.RECCE = (counts.RECCE || 0) + 1;
-      const rank = sourceRank(officer.rankHistories[0]?.rank.code || raw["5"]);
+      const rank = sourceRank(
+        officer.rankHistories[0]?.rank.code ||
+          officer.rankSnapshot?.rankCode ||
+          raw["5"],
+      );
       if (
         query.group !== "ALL" &&
         !(query.group === "RECCE" ? isRecce : group === query.group)
@@ -155,6 +160,7 @@ export async function groupRoster(
         originalRank:
           officer.rankHistories[0]?.originalRankSpelling ||
           officer.rankHistories[0]?.rank.code ||
+          officer.rankSnapshot?.rank1 ||
           sourceText(raw["4"]),
         specialistDesignation:
           officer.rankHistories[0]?.specialistDesignation || null,

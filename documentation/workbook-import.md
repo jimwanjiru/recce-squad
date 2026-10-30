@@ -9,8 +9,8 @@ The supported source is the original 38-column `RECCE DETAILED.xlsx` layout, inc
 - Creates new officer names/force numbers, payroll numbers, national IDs, gender, phone, valid complete birth/enlistment dates and education/KCSE values. Numeric identifiers already missing leading zeros cannot be repaired by guessing; explicit zero-padding formats are respected. Original cell values and number formats are retained in encrypted source staging.
 - Marks every imported officer **UNVERIFIED**. This does not assert their current service status or strength eligibility.
 - Holds partial, ambiguous, invalid or inconsistent dates for review. Creates no rank, assignment, deployment, movement or status-history effective dates. Source promotion dates alone are not verified rank-history start dates.
-- Preserves the original rank columns, specialist wording, county/district and ethnicity values, service remarks, courses, exams, awards, discipline, bank values, CHANGES events and other worksheet content in encrypted staging. Those fields are **not yet populated as operational records**, and rank/unit filters remain empty until reviewed mappings and dates are applied. No retirement/strength policies are activated; calculated/formula totals are not treated as personnel records.
-- Does not overwrite any officer with an existing force number, including archived officers. Conflicting rows are held, not merged. Duplicate force numbers within the source are all held. A repeated identical file is a no-op, serialized against other imports. A changed file requires a fresh preview hash.
+- Stores current Rank 1 and Rank 2 in structured `OfficerRankSnapshot` records linked to their existing officer and source row. The list uses these database records and labels them **Imported rank**. Verified dated rank history takes precedence. All other original workbook columns, including sensitive finance and discipline values, remain preserved in encrypted database source rows. No retirement/strength policies are activated; calculated/formula totals are not treated as personnel records.
+- Does not overwrite any officer with an existing force number, including archived officers. Conflicting rows are held, not merged. Duplicate force numbers within the source are all held. A repeated identical file preserves its officers and fills any missing rank snapshots; subsequent reruns preserve existing snapshots too. A changed file requires a fresh preview hash.
 
 ## One-command seeder
 
@@ -20,7 +20,7 @@ After updating the project, run `npm ci --ignore-scripts` and `npm run local:bui
 npm run db:seed:workbook -- --backup-confirmed
 ```
 
-This calls `tools/seed-workbook.cjs`, computes the file hash automatically, and invokes the same transactional importer described below. It creates all eligible core officer records and encrypted review staging; it does not invent historical dates or approve unresolved policies. Identical workbooks are skipped and existing officers are preserved. No manual hash copying or `local:configure` is needed.
+This calls `tools/seed-workbook.cjs`, computes the file hash automatically, and invokes the same transactional importer described below. It creates eligible core officer records, structured current rank snapshots and encrypted review staging. It does not invent historical dates or approve unresolved policies. The alias `npm run db:seed:officers -- --backup-confirmed` performs the same operation. Run `npm run local:build` and `npm run db:migrate` after updating, before seeding. See [NAMES database seeding and rank verification](names-ranks.md) for the complete update sequence. No manual hash copying or `local:configure` is needed.
 
 Optional read-only preview:
 

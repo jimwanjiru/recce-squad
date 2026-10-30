@@ -78,6 +78,7 @@ async function main() {
             },
             financialDetail: true,
             serviceProfile: true,
+            rankSnapshot: true,
           },
         });
         if (
@@ -89,6 +90,10 @@ async function main() {
               o.deletedAt ||
               o.serviceProfile ||
               o.financialDetail ||
+              (o.rankSnapshot &&
+                !batch.rows.some(
+                  (r) => r.id === o.rankSnapshot!.sourceRowId,
+                )) ||
               o._count.importRows !== 1 ||
               Object.entries(o._count).some(
                 ([k, n]) => k !== "importRows" && n > 0,
@@ -96,6 +101,9 @@ async function main() {
           )
         )
           throw new Error("MODIFIED_OFFICERS_REQUIRE_MANUAL_ROLLBACK");
+        await tx.officerRankSnapshot.deleteMany({
+          where: { sourceRow: { batchId: batch.id } },
+        });
         await tx.importRow.updateMany({
           where: { batchId: batch.id },
           data: { officerId: null, status: "ROLLED_BACK" },

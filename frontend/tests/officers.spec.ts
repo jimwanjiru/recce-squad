@@ -17,7 +17,8 @@ const db = createDatabase(url),
 let userId: string,
   roleId: string,
   sourceBatchId = "",
-  sourceRowId = "";
+  sourceRowId = "",
+  createdRankId = "";
 let sourceKey: Buffer;
 test.beforeAll(async () => {
   await mkdir(".local", { recursive: true });
@@ -48,6 +49,13 @@ test.beforeAll(async () => {
   });
   userId = user.id;
   await db.userRole.create({ data: { userId, roleId } });
+  if (!(await db.rank.findUnique({ where: { code: "CI" } }))) {
+    createdRankId = (
+      await db.rank.create({
+        data: { code: "CI", name: "CI", hierarchyLevel: 5 },
+      })
+    ).id;
+  }
 });
 test.afterAll(async () => {
   const records = await db.officer.findMany({
@@ -55,6 +63,11 @@ test.afterAll(async () => {
     select: { id: true },
   });
   const ids = records.map((o) => o.id);
+  await db.officerRankSnapshot.deleteMany({
+    where: { officerId: { in: ids } },
+  });
+  await db.officerRankHistory.deleteMany({ where: { officerId: { in: ids } } });
+  if (createdRankId) await db.rank.delete({ where: { id: createdRankId } });
   await db.officerServiceProfile.deleteMany({
     where: { officerId: { in: ids } },
   });
@@ -165,6 +178,16 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     },
   });
   sourceRowId = source.id;
+  await db.officerRankSnapshot.create({
+    data: {
+      officerId: sourceOfficerId!,
+      sourceRowId: source.id,
+      rank1: "Fictional Specialist Designation",
+      rank2: "C.I",
+      rankCode: "CI",
+      seededById: userId,
+    },
+  });
   const otherGroupOfficer = await db.officer.create({
     data: {
       forceNumber: tag + "-other",
@@ -428,6 +451,17 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(
     page.getByRole("table").getByText("PC", { exact: true }),
   ).toHaveCount(0);
+  await expect(
+    page.getByRole("table").getByText("Imported rank", { exact: true }),
+  ).toBeVisible();
+  const nameCell = page.locator(".officer-name").first();
+  expect((await nameCell.boundingBox())!.width).toBeGreaterThan(240);
+  expect(
+    (await page
+      .locator(".officer-directory-table .officer-avatar")
+      .first()
+      .boundingBox())!.width,
+  ).toBe(40);
   await page.goto("/officers/" + sourceOfficerId);
 
   await page.getByRole("tab", { name: "Rank history", exact: true }).click();
@@ -436,6 +470,38 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   ).toBeVisible();
   await expect(
     page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
+  ).toHaveCount(0);
+  const rank = await db.rank.findUniqueOrThrow({ where: { code: "CI" } });
+  await page.getByText("Verify initial rank", { exact: true }).click();
+  await expect(
+    page.getByLabel("Verified rank effective date", { exact: true }),
+  ).toHaveValue("");
+  await page
+    .getByLabel("Overall rank (Rank 2)", { exact: true })
+    .selectOption(rank.id);
+  await page
+    .getByLabel("Verified rank effective date", { exact: true })
+    .fill("2020-01-01");
+  await page
+    .getByLabel("Original rank spelling (Rank 1)", { exact: true })
+    .fill("C.I(W)");
+  await page
+    .getByText(
+      "I have checked this officer, rank and effective date against an authoritative record.",
+      { exact: true },
+    )
+    .click();
+  await page
+    .getByRole("button", { name: "Save verified initial rank", exact: true })
+    .click();
+  await expect(
+    page.getByText(
+      "Initial rank verified. Further rank changes must use the Changes workflow.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Verify initial rank", { exact: true }),
   ).toHaveCount(0);
   await page
     .getByRole("tab", { name: "Financial information", exact: true })
@@ -490,6 +556,9 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   ).toBeVisible();
   await page.getByRole("link", { name: "Back to officers" }).click();
   await page.getByRole("textbox", { name: "Search officers" }).fill(tag);
+  await expect(
+    page.getByRole("table").getByText("Verified current rank", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Fictional Browser Officer Updated/ }),
   ).toBeVisible();

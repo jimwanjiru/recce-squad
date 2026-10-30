@@ -12,7 +12,7 @@ npm run local:build
 npm run local:start
 ```
 
-Native startup applies the two additive migrations that create OfficerChange and its approval guard. Existing officers, histories and workbook source rows are not reset. No reimport is needed. The complete Prisma schema now has 37 validated models; the original models/relations remain in place.
+Native startup applies the additive migrations that create OfficerChange, its approval guard and structured imported rank snapshots. Existing officers, histories and workbook source rows are not reset. The complete Prisma schema now has 38 validated models; the original models/relations remain in place. See [NAMES seeding](names-ranks.md) to populate missing imported rank snapshots on an existing installation.
 
 ## Record and maintain a change
 

@@ -18,12 +18,13 @@ const profile = z
     serviceRemarks: nullableText(5000).optional(),
   })
   .strict();
-const initialRank = z
+export const initialRank = z
   .object({
     rankId: z.string().min(1),
     effectiveFrom: date,
     originalRankSpelling: nullableText().optional(),
     specialistDesignation: nullableText().optional(),
+    referenceNumber: nullableText().optional(),
     datesVerified: z.literal(true),
   })
   .strict();

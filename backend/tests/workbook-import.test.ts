@@ -119,6 +119,14 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
     const rows = await db.importRow.findMany({ where: { batchId: batch.id } });
     ids.push(...rows.flatMap((r) => (r.officerId ? [r.officerId] : [])));
     assert.equal(ids.length, 3);
+    assert.equal(
+      await db.officerRankSnapshot.count({ where: { officerId: { in: ids } } }),
+      3,
+    );
+    // Upgrade an older import without recreating its officers.
+    await db.officerRankSnapshot.deleteMany({
+      where: { officerId: { in: ids } },
+    });
     for (const row of rows)
       assert(!JSON.stringify(row.rawData).includes("FICTIONAL-ACCOUNT-SECRET"));
     assert.equal(
@@ -137,6 +145,10 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
     assert(officers.every((o) => o.recordStatus === "UNVERIFIED"));
     assert.equal(run(args).status, 0);
     assert.equal(await db.officer.count(), baseline + 3);
+    assert.equal(
+      await db.officerRankSnapshot.count({ where: { officerId: { in: ids } } }),
+      3,
+    );
     assert.equal(
       await db.importBatch.count({ where: { uploadedById: actorId } }),
       1,
@@ -181,6 +193,31 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
           password: "Fictional-Import-Password-2026!",
         });
       assert.equal(login.status, 200);
+      const rankList = (
+        await agent.get("/api/officers?q=" + encodeURIComponent(tag))
+      ).body.data;
+      assert(
+        rankList.length > 0 &&
+          rankList.every((o: any) => o.rankSource === "DATABASE"),
+      );
+      const sourcePermission = await db.permission.findUniqueOrThrow({
+        where: { code: "fields.import_source.view" },
+      });
+      await db.rolePermission.delete({
+        where: {
+          roleId_permissionId: { roleId, permissionId: sourcePermission.id },
+        },
+      });
+      const databaseOnly = await agent.get(
+        "/api/officers?q=" + encodeURIComponent(tag),
+      );
+      assert.equal(databaseOnly.status, 200);
+      assert(
+        databaseOnly.body.data.every((o: any) => o.rankSource === "DATABASE"),
+      );
+      await db.rolePermission.create({
+        data: { roleId, permissionId: sourcePermission.id },
+      });
       const roster = await agent.get(
         "/api/organization/groups?group=MO&pageSize=1&page=1",
       );
@@ -385,6 +422,10 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
       assert.equal(reverted.status, 0, reverted.stderr);
       assert.equal(await db.officer.count(), baseline);
       assert.equal(
+        await db.officerRankSnapshot.count({ where: { seededById: actorId } }),
+        0,
+      );
+      assert.equal(
         (await db.importBatch.findUniqueOrThrow({ where: { id: batch.id } }))
           .status,
         "ROLLED_BACK",
@@ -411,6 +452,9 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
         ...rows.flatMap((r) => (r.officerId ? [r.officerId] : [])),
       ]),
     ];
+    await db.officerRankSnapshot.deleteMany({
+      where: { sourceRow: { batchId: { in: batchIds } } },
+    });
     await db.importRow.deleteMany({ where: { batchId: { in: batchIds } } });
     await db.importBatch.deleteMany({ where: { id: { in: batchIds } } });
     await db.officerEducation.deleteMany({

@@ -143,6 +143,7 @@ export async function dashboardSummary(
         officer: {
           select: {
             forceNumber: true,
+            rankSnapshot: { select: { rankCode: true, rank1: true } },
             rankHistories: {
               where: effective,
               select: { rank: { select: { code: true } } },
@@ -180,7 +181,10 @@ export async function dashboardSummary(
       const assignment = row.officer.assignments[0];
       const currentRaw = {
         ...raw,
-        5: row.officer.rankHistories[0]?.rank.code || raw["5"],
+        5:
+          row.officer.rankHistories[0]?.rank.code ||
+          row.officer.rankSnapshot?.rankCode ||
+          raw["5"],
         20: assignment
           ? assignment.subUnit?.code ||
             assignment.disposition ||

@@ -20,6 +20,7 @@ import {
   createOfficer,
   updateOfficer,
   revision,
+  initialRank,
 } from "../validators/officers.js";
 import { officerTransaction, businessDate } from "../services/history.js";
 type Identity = { userId: string; grants: Set<string> };
@@ -342,6 +343,58 @@ export function officerRoutes(db: PrismaClient) {
           : data,
         meta: { total, page: q.page, pageSize: q.pageSize },
       });
+    }),
+  );
+  router.post(
+    "/officers/:id/rank-baseline",
+    run(async (req, res) => {
+      need(res, "officers.update");
+      need(res, "fields.rank_history.view");
+      need(res, "fields.rank_history.write");
+      const officerId = z.string().min(1).max(191).parse(req.params.id);
+      const { datesVerified, ...data } = initialRank.parse(req.body);
+      if (data.effectiveFrom.toISOString().slice(0, 10) > businessDate())
+        throw new HttpError(422, "FUTURE_RANK_BASELINE");
+      const result = await db.$transaction(
+        async (tx) => {
+          await organizationLock(tx);
+          const locked = await tx.$queryRaw<
+            { id: string }[]
+          >`SELECT id FROM Officer WHERE id = ${officerId} FOR UPDATE`;
+          if (!locked.length) throw new HttpError(404, "OFFICER_NOT_FOUND");
+          const officer = await tx.officer.findUniqueOrThrow({
+            where: { id: officerId },
+          });
+          if (officer.deletedAt)
+            throw new HttpError(409, "RESTORE_BEFORE_EDIT");
+          if (
+            (await tx.officerRankHistory.count({ where: { officerId } })) ||
+            (await tx.personnelMovement.count({ where: { officerId } }))
+          )
+            throw new HttpError(409, "RANK_BASELINE_REQUIRES_HISTORY_REVIEW");
+          if (
+            !(await tx.rank.findFirst({
+              where: { id: data.rankId, isActive: true },
+            }))
+          )
+            throw new HttpError(422, "INVALID_RANK");
+          const history = await tx.officerRankHistory.create({
+            data: {
+              ...data,
+              officerId,
+              datesVerifiedAt: new Date(),
+              datesVerifiedById: actor(res).userId,
+            },
+          });
+          await audit(tx, res, "INITIAL_RANK_VERIFIED", officerId, [
+            "rankHistories",
+            "effectiveFrom",
+          ]);
+          return history;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+      );
+      res.status(201).json({ data: result });
     }),
   );
   router.post(

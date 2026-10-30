@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { parseArgs } from "node:util";
 import { createDatabase } from "../backend/src/config/database.js";
 import { organizationLock } from "../backend/src/services/organization-lock.js";
+import { seedOfficerRanks } from "../backend/src/services/seed-officer-ranks.js";
 import { readWorkbook, seal } from "./workbook-import-data.cjs";
 import type { Prisma } from "@prisma/client";
 async function main() {
@@ -23,7 +24,7 @@ async function main() {
   );
   if (!values.commit) {
     console.log(
-      "Preview only: no database changes. Rank, assignments, statuses, finance and uncertain fields remain staged for review.",
+      "Preview only: no database changes. Import stores current rank snapshots; verified histories, assignments, statuses, finance and uncertain dates remain separate.",
     );
     return;
   }
@@ -62,6 +63,7 @@ async function main() {
         const needed = [
           "imports.commit",
           "officers.create",
+          "officers.update",
           "fields.import_source.write",
           "fields.payroll_number.write",
           "fields.national_id.write",
@@ -70,6 +72,8 @@ async function main() {
           "fields.gender.write",
           "fields.phone.write",
           "fields.education.write",
+          "fields.rank_history.write",
+          "fields.import_source.view",
         ];
         if (!actor?.isActive || needed.some((p) => !grants.has(p)))
           throw new Error("IMPORT_ACTOR_NOT_AUTHORIZED");
@@ -79,15 +83,29 @@ async function main() {
             status: { not: "ROLLED_BACK" },
           },
         });
-        if (prior)
+        if (prior) {
+          const rankSnapshots = await seedOfficerRanks(tx, prior.id, actor.id);
+          if (rankSnapshots.created)
+            await tx.auditLog.create({
+              data: {
+                userId: actor.id,
+                action: "WORKBOOK_RANK_SNAPSHOTS_SEEDED",
+                entityType: "ImportBatch",
+                entityId: prior.id,
+                changedFields: ["rankSnapshots"],
+              },
+            });
           return {
             alreadyImported: true,
             batchId: prior.id,
             created: prior.importedRows,
             held: prior.rejectedRows,
+            rankSnapshots,
           };
+        }
         await mkdir(".local", { recursive: true, mode: 0o700 });
-        const keyPath = ".local/workbook-import.key";
+        const keyPath =
+          process.env.WORKBOOK_IMPORT_KEY_PATH || ".local/workbook-import.key";
         let key: Buffer;
         try {
           key = await readFile(keyPath);
@@ -165,6 +183,7 @@ async function main() {
         }
         for (let i = 0; i < staged.length; i += 100)
           await tx.importRow.createMany({ data: staged.slice(i, i + 100) });
+        const rankSnapshots = await seedOfficerRanks(tx, batch.id, actor.id);
         await tx.importBatch.update({
           where: { id: batch.id },
           data: {
@@ -179,7 +198,12 @@ async function main() {
             action: "WORKBOOK_CORE_IMPORTED",
             entityType: "ImportBatch",
             entityId: batch.id,
-            changedFields: ["officers", "education", "encryptedSourceStaging"],
+            changedFields: [
+              "officers",
+              "education",
+              "rankSnapshots",
+              "encryptedSourceStaging",
+            ],
           },
         });
         return {
@@ -189,6 +213,7 @@ async function main() {
           held,
           existingPreserved: existing,
           sourceRowsStaged: staged.length,
+          rankSnapshots,
         };
       },
       { timeout: 180000, maxWait: 15000 },

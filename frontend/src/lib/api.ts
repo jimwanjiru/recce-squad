@@ -64,6 +64,10 @@ export function message(error: unknown) {
     const messages: Record<string, string> = {
       MOVEMENT_WORKFLOW_REQUIRED:
         "This officer already has history. Use the personnel movement approval workflow for subsequent assignments.",
+      RANK_BASELINE_REQUIRES_HISTORY_REVIEW:
+        "This officer already has rank or movement history. Review that history and use Changes for subsequent rank changes; an initial rank cannot replace it.",
+      FUTURE_RANK_BASELINE:
+        "An initial verified rank cannot start in the future. Enter the actual confirmed effective date.",
       UNIT_CYCLE: "A unit cannot become its own ancestor.",
       ACTIVE_CHILDREN_EXIST:
         "Deactivate active child units and sub-units first.",
@@ -150,7 +154,7 @@ export type Officer = {
   dateEnlisted?: string | null;
   rank1?: string;
   rank2?: string;
-  rankSource?: "VERIFIED" | "WORKBOOK" | "UNRECORDED";
+  rankSource?: "VERIFIED" | "DATABASE" | "WORKBOOK" | "UNRECORDED";
   specialistDesignation?: string | null;
 };
 export type Option = {

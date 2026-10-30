@@ -1,4 +1,5 @@
 import { WorkbookDetails } from "../components/WorkbookDetails";
+import { RankBaseline } from "../components/RankBaseline";
 import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -97,7 +98,9 @@ const labels: Record<string, string> = {
   isPrimary: "Primary assignment",
 };
 function History({ id, section }: { id: string; section: string }) {
+  const { can } = useAuth();
   const [page, setPage] = useState(1);
+  const [notice, setNotice] = useState("");
   const query = useQuery({
     queryKey: ["officer-section", id, section, page],
     queryFn: () =>
@@ -111,6 +114,11 @@ function History({ id, section }: { id: string; section: string }) {
   const rows = Array.isArray(data) ? data : data ? [data] : [];
   return (
     <>
+      {notice && (
+        <p className="notice success" role="status">
+          {notice}
+        </p>
+      )}
       {rows.length === 0 ? (
         <Empty
           title="No entries recorded"
@@ -163,6 +171,19 @@ function History({ id, section }: { id: string; section: string }) {
           })}
         </div>
       )}
+      {section === "ranks" &&
+        rows.length === 0 &&
+        can("officers.update") &&
+        can("fields.rank_history.write") && (
+          <RankBaseline
+            id={id}
+            saved={() =>
+              setNotice(
+                "Initial rank verified. Further rank changes must use the Changes workflow.",
+              )
+            }
+          />
+        )}
       {section !== "service" && (
         <div className="pagination">
           <span>Page {page} · Up to 25 entries per page</span>
@@ -194,7 +215,12 @@ export function Profile() {
   const { can } = useAuth();
   const location = useLocation();
   const cache = useQueryClient();
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(
+    new URLSearchParams(location.search).get("tab") === "ranks" &&
+      can("fields.rank_history.view")
+      ? "ranks"
+      : "overview",
+  );
   const [confirm, setConfirm] = useState(false);
   const [notice, setNotice] = useState(
     (location.state as { notice?: string } | null)?.notice ?? "",
