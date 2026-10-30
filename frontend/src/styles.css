@@ -2097,3 +2097,19 @@ td.mono {
     max-width: none;
   }
 }
+
+.rank-group-filter {
+  display: grid;
+  gap: 7px;
+  margin-top: 20px;
+  color: #63748d;
+  font-size: 11px;
+}
+.rank-group-summary {
+  font-size: 11px;
+  color: #2456a7;
+  margin: 10px 0 0;
+}
+.rank-group-filter select {
+  width: 100%;
+}

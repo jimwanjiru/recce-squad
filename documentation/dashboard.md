@@ -45,3 +45,9 @@ Rank counts require the existing fields.rank_history.view permission in addition
 The dashboard is now split into **Overview**, **Strength analysis** and **Workbook comparison**. Overview has an interactive group-distribution ring, a rank-composition chart and count cards. Selecting a group in the chart focuses its count/share and provides a link to the corresponding Organization roster; the group count cards also link to rosters. RECCE membership remains separate from the placement distribution.
 
 Strength and workbook tables have independent pagination controls, row counts and selectable page sizes. The rank matrix defaults to five groups per page, while rank comparison defaults to ten ranks per page. Headers still show every rank; footer totals refer to all groups/ranks, not just the visible page. This reduces page length without changing the underlying totals.
+
+## Rank composition for a selected group
+
+The Overview rank-composition panel has a group selector for all workbook-linked officers, RECCE membership, or an individual placement group (including NA, other and blank dispositions). Rank counts come from the existing group-by-rank matrix. Percentages use the selected group's officer count, not the total register. Police ranks retain their confirmed order; only populated ranks are plotted, and an empty group has an explicit zero-record state.
+
+Clicking a group in the distribution legend also selects it in Rank composition. A roster link opens Organization with that group selected. The selector is a display filter: it does not change source records, assignments, rank histories or policy inclusion rules. Browser tests use fictional officers in different groups to verify both rank differences and group-relative percentages.

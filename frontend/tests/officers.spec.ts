@@ -145,6 +145,40 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     },
   });
   sourceRowId = source.id;
+  const otherGroupOfficer = await db.officer.create({
+    data: {
+      forceNumber: tag + "-other",
+      fullName: "Fictional HQS Officer",
+      recordStatus: "UNVERIFIED",
+    },
+  });
+  await db.importRow.create({
+    data: {
+      batchId: batch.id,
+      sheetName: "NAMES",
+      rowNumber: 3,
+      officerId: otherGroupOfficer.id,
+      rawData: seal(
+        {
+          2: otherGroupOfficer.forceNumber,
+          6: otherGroupOfficer.fullName,
+          4: "PC",
+          5: "PC",
+          20: "HQS",
+          22: "R",
+        },
+        sourceKey,
+        `${tag}:NAMES:3`,
+      ),
+      unresolvedDates: {},
+      validationErrors: [],
+      status: "CORE_IMPORTED_REVIEW_PENDING",
+    },
+  });
+  await db.importBatch.update({
+    where: { id: batch.id },
+    data: { totalRows: 2, importedRows: 2 },
+  });
   await db.importRow.create({
     data: {
       batchId: batch.id,
@@ -235,6 +269,31 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(
     page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
   ).toHaveCount(0);
+  const composition = page.getByRole("region", {
+    name: "Rank composition",
+    exact: true,
+  });
+  await page
+    .getByLabel("Rank composition group", { exact: true })
+    .selectOption("ALL");
+  await expect(composition.locator(".rank-chart-row")).toHaveCount(2);
+  await expect(
+    composition.locator(".rank-chart-row").filter({ hasText: "CI" }),
+  ).toContainText("50.0%");
+  await page
+    .getByLabel("Rank composition group", { exact: true })
+    .selectOption("HQS");
+  await expect(composition.locator(".rank-chart-row")).toHaveCount(1);
+  await expect(composition.locator(".rank-chart-row")).toContainText("PC");
+  await expect(composition.locator(".rank-chart-row")).toContainText("100.0%");
+  await page
+    .getByLabel("Rank composition group", { exact: true })
+    .selectOption("RRT");
+  await expect(
+    composition.getByText("No officers are recorded in this group.", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await page
     .locator(".distribution-legend")
     .getByRole("button", { name: /Main Office/ })

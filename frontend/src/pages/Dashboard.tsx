@@ -43,6 +43,7 @@ type Summary = {
 const number = (n: number) => n.toLocaleString("en-GB");
 function Analytics({ data }: { data: Summary }) {
   const [selected, setSelected] = useState("ALL");
+  const [rankGroup, setRankGroup] = useState("ALL");
   const colors = [
     "#235bd6",
     "#14a3a5",
@@ -66,8 +67,27 @@ function Analytics({ data }: { data: Summary }) {
   });
   const focus = data.groups.find((group) => group.code === selected),
     value = focus?.count ?? data.sourceLinked;
-  const filled = data.rankBreakdown.filter((rank) => rank.count > 0),
-    maximum = Math.max(1, ...filled.map((rank) => rank.count));
+  const rankFocus = data.groups.find((group) => group.code === rankGroup);
+  const rankTotal =
+    rankGroup === "RECCE"
+      ? data.recce
+      : (rankFocus?.count ?? data.sourceLinked);
+  const rankLabel =
+    rankGroup === "RECCE"
+      ? "RECCE membership"
+      : rankFocus?.label || "All workbook-linked officers";
+  const filled = data.rankBreakdown
+    .map((rank) => ({
+      ...rank,
+      count:
+        rankGroup === "RECCE"
+          ? rank.recceCount
+          : rankFocus
+            ? rankFocus.ranks[rank.code] || 0
+            : rank.count,
+    }))
+    .filter((rank) => rank.count > 0);
+  const maximum = Math.max(1, ...filled.map((rank) => rank.count));
   return (
     <div className="analytics-charts">
       <section className="card analytics-panel">
@@ -105,7 +125,10 @@ function Analytics({ data }: { data: Summary }) {
           <div className="distribution-legend">
             <button
               className={selected === "ALL" ? "selected" : ""}
-              onClick={() => setSelected("ALL")}
+              onClick={() => {
+                setSelected("ALL");
+                setRankGroup("ALL");
+              }}
             >
               All groups <strong>{number(data.sourceLinked)}</strong>
             </button>
@@ -115,7 +138,10 @@ function Analytics({ data }: { data: Summary }) {
                 <button
                   key={group.code}
                   className={selected === group.code ? "selected" : ""}
-                  onClick={() => setSelected(group.code)}
+                  onClick={() => {
+                    setSelected(group.code);
+                    setRankGroup(group.code);
+                  }}
                 >
                   <i
                     style={{
@@ -141,7 +167,7 @@ function Analytics({ data }: { data: Summary }) {
           </Link>
         )}
       </section>
-      <section className="card analytics-panel">
+      <section className="card analytics-panel" aria-label="Rank composition">
         <div className="analytics-title">
           <div>
             <p className="eyebrow">RANK COMPOSITION</p>
@@ -151,6 +177,29 @@ function Analytics({ data }: { data: Summary }) {
             {filled.length} populated ranks
           </span>
         </div>
+        <label className="rank-group-filter">
+          Group
+          <select
+            aria-label="Rank composition group"
+            value={rankGroup}
+            onChange={(event) => setRankGroup(event.target.value)}
+          >
+            <option value="ALL">
+              All workbook-linked officers ({number(data.sourceLinked)})
+            </option>
+            <option value="RECCE">
+              RECCE membership ({number(data.recce)})
+            </option>
+            {data.groups.map((group) => (
+              <option key={group.code} value={group.code}>
+                {group.label} ({number(group.count)})
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="rank-group-summary">
+          {rankLabel} · {number(rankTotal)} officers
+        </p>
         <div className="rank-chart">
           {filled.map((rank) => (
             <div className="rank-chart-row" key={rank.code}>
@@ -160,22 +209,29 @@ function Analytics({ data }: { data: Summary }) {
               </div>
               <strong>{number(rank.count)}</strong>
               <small>
-                {data.sourceLinked
-                  ? ((100 * rank.count) / data.sourceLinked).toFixed(1)
-                  : "0"}
-                %
+                {rankTotal ? ((100 * rank.count) / rankTotal).toFixed(1) : "0"}%
               </small>
             </div>
           ))}
           {!filled.length && (
             <p className="muted">
-              Import officer data to see rank composition.
+              {data.sourceLinked
+                ? "No officers are recorded in this group."
+                : "Import officer data to see rank composition."}
             </p>
           )}
         </div>
+        <Link
+          className="analytics-roster-link"
+          to={
+            "/organization?view=groups&group=" + encodeURIComponent(rankGroup)
+          }
+        >
+          View selected group roster →
+        </Link>
         <p className="analytics-chart-note">
-          Counts follow recorded workbook ranks. Percentages are shares of
-          linked officers; force numbers do not determine rank.
+          Percentages are shares of the selected group. Ranks follow the
+          workbook; RECCE membership overlaps the placement groups.
         </p>
       </section>
     </div>
