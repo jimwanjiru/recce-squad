@@ -281,16 +281,16 @@ export function Changes() {
             </select>
           </label>
           <label>
-            Event type
+            Change type
             <select
-              aria-label="Change event filter"
+              aria-label="Change type filter"
               value={type}
               onChange={(e) => {
                 setType(e.target.value);
                 setPage(1);
               }}
             >
-              <option value="">All event types</option>
+              <option value="">All change types</option>
               {meta.types.map((t) => (
                 <option value={t.code} key={t.code}>
                   {t.label}
@@ -367,7 +367,6 @@ export function Changes() {
                     <th>Actions</th>
                     {view === "register" ? (
                       <>
-                        <th>Event</th>
                         <th>Effective date</th>
                         <th>Officer</th>
                         <th>Approval</th>
@@ -504,11 +503,6 @@ export function Changes() {
                         {view === "register" ? (
                           <>
                             <td>
-                              {meta.types.find((t) => t.code === row.eventType)
-                                ?.label || row.eventType}
-                              {row.amendsId && <small>Linked amendment</small>}
-                            </td>
-                            <td>
                               {row.effectiveDate
                                 ? dateLabel(row.effectiveDate)
                                 : "Undated"}
@@ -529,6 +523,7 @@ export function Changes() {
                                 {row.status}
                               </span>
                               <small>Recorded: {row.recordedBy?.name}</small>
+                              {row.amendsId && <small>Linked amendment</small>}
                               {row.approvedBy && (
                                 <small>Approved: {row.approvedBy.name}</small>
                               )}
@@ -640,7 +635,9 @@ function ChangeDetails({
   close: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const [officerExpanded, setOfficerExpanded] = useState(false);
   const officer = useQuery({
+    enabled: officerExpanded,
     queryKey: ["officer", row.officerId],
     queryFn: () => api<{ data: Officer }>("/officers/" + row.officerId),
   });
@@ -683,13 +680,25 @@ function ChangeDetails({
           Close
         </Button>
       </div>
-      <section aria-label="Change summary">
-        <h3>Change summary</h3>
+      <section aria-label="Recorded change details">
+        <h3>Recorded change details</h3>
         <dl className="detail-grid">
-          <div>
-            <dt>Change type</dt>
-            <dd>{event.label}</dd>
-          </div>
+          {event.columns.map((c) => (
+            <div key={c.column}>
+              <dt>{c.label}</dt>
+              <dd>
+                {c.label === "Change type"
+                  ? changeType
+                  : workbookValue(row.cells[String(c.column)] || "") ||
+                    "Not recorded"}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <section aria-label="Change summary">
+        <h3>Effective date and status</h3>
+        <dl className="detail-grid">
           <div>
             <dt>Approval status</dt>
             <dd>{row.status}</dd>
@@ -704,14 +713,6 @@ function ChangeDetails({
               {row.effectiveDate?.slice(0, 4) ||
                 "Undated — awaiting date verification"}
             </dd>
-          </div>
-          <div>
-            <dt>Recorded by</dt>
-            <dd>{row.recordedBy?.name || "Not recorded"}</dd>
-          </div>
-          <div>
-            <dt>Approved by</dt>
-            <dd>{row.approvedBy?.name || "Not yet approved"}</dd>
           </div>
           {row.targetUnitId && (
             <div>
@@ -742,68 +743,70 @@ function ChangeDetails({
           )}
         </dl>
       </section>
-      <section aria-label="Officer details">
-        <h3>Officer details</h3>
-        <p>
-          Current registered details. The details recorded with this change are
-          shown below.
-        </p>
-        {officer.isPending && <Loading />}
-        {officer.error && <ErrorNotice error={officer.error} />}
-        {current && (
-          <dl className="detail-grid">
-            <div>
-              <dt>Force number</dt>
-              <dd>{current.forceNumber}</dd>
-            </div>
-            <div>
-              <dt>Name</dt>
-              <dd>{current.fullName}</dd>
-            </div>
-            <div>
-              <dt>Personnel status</dt>
-              <dd>{current.recordStatus.replaceAll("_", " ")}</dd>
-            </div>
-            <div>
-              <dt>Record state</dt>
-              <dd>{current.deletedAt ? "Archived" : "Not archived"}</dd>
-            </div>
-            {personalFields
-              .filter(([key]) => key in current)
-              .map(([key, label, date]) => (
-                <div key={key}>
-                  <dt>{label}</dt>
-                  <dd>
-                    {date
-                      ? dateLabel(current[key] as string | null)
-                      : String(current[key] || "Not recorded")}
-                  </dd>
-                </div>
-              ))}
-          </dl>
-        )}
-        <p>
-          <Link to={"/officers/" + row.officerId}>
-            Open full officer record
-          </Link>
-        </p>
-      </section>
-      <section aria-label="Recorded change details">
-        <h3>Recorded change details</h3>
+      <details
+        className="change-detail-disclosure"
+        onToggle={(e) => setOfficerExpanded(e.currentTarget.open)}
+      >
+        <summary>Officer details</summary>
+        <section aria-label="Officer details">
+          <p>
+            Current registered details. These may differ from the details
+            recorded with this change.
+          </p>
+          {officer.isPending && <Loading />}
+          {officer.error && <ErrorNotice error={officer.error} />}
+          {current && (
+            <dl className="detail-grid">
+              <div>
+                <dt>Force number</dt>
+                <dd>{current.forceNumber}</dd>
+              </div>
+              <div>
+                <dt>Name</dt>
+                <dd>{current.fullName}</dd>
+              </div>
+              <div>
+                <dt>Personnel status</dt>
+                <dd>{current.recordStatus.replaceAll("_", " ")}</dd>
+              </div>
+              <div>
+                <dt>Record state</dt>
+                <dd>{current.deletedAt ? "Archived" : "Not archived"}</dd>
+              </div>
+              {personalFields
+                .filter(([key]) => key in current)
+                .map(([key, label, date]) => (
+                  <div key={key}>
+                    <dt>{label}</dt>
+                    <dd>
+                      {date
+                        ? dateLabel(current[key] as string | null)
+                        : String(current[key] || "Not recorded")}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          )}
+          <p>
+            <Link to={"/officers/" + row.officerId}>
+              Open full officer record
+            </Link>
+          </p>
+        </section>
+      </details>
+      <details className="change-detail-disclosure">
+        <summary>Approval and recording details</summary>
         <dl className="detail-grid">
-          {event.columns.map((c) => (
-            <div key={c.column}>
-              <dt>{c.label}</dt>
-              <dd>
-                {c.label === "Change type"
-                  ? changeType
-                  : workbookValue(row.cells[String(c.column)] || "") ||
-                    "Not recorded"}
-              </dd>
-            </div>
-          ))}
+          <div>
+            <dt>Recorded by</dt>
+            <dd>{row.recordedBy?.name || "Not recorded"}</dd>
+          </div>
+          <div>
+            <dt>Approved by</dt>
+            <dd>{row.approvedBy?.name || "Not yet approved"}</dd>
+          </div>
         </dl>
-      </section>
+      </details>
       <div className="changes-dialog-actions">
         <Button variant="outline" onClick={dismiss}>
           Done

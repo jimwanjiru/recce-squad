@@ -239,12 +239,29 @@ test("record, edit, delete and independently approve officer changes without mix
     name: "Changes workbook table",
     exact: true,
   });
-  await expect(table.getByRole("columnheader")).toHaveCount(18);
+  await expect(
+    page.getByLabel("Change type filter", { exact: true }),
+  ).toBeVisible();
+  await expect(table.getByRole("columnheader")).toHaveCount(17);
+  await expect(
+    table.getByRole("columnheader", { name: "Event", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    table.getByRole("columnheader", { name: "Change type", exact: true }),
+  ).toHaveCount(1);
   await table.getByRole("button", { name: "View", exact: true }).click();
   let details = page.getByRole("dialog", {
     name: "Officer change details",
     exact: true,
   });
+  await expect(details.locator("section").first()).toHaveAttribute(
+    "aria-label",
+    "Recorded change details",
+  );
+  await expect(details.locator("details[open]")).toHaveCount(0);
+  await expect(
+    details.getByRole("region", { name: "Officer details", exact: true }),
+  ).toBeHidden();
   await expect(
     details
       .getByRole("region", { name: "Recorded change details", exact: true })
@@ -360,10 +377,18 @@ test("record, edit, delete and independently approve officer changes without mix
     name: "Officer change details",
     exact: true,
   });
+  await expect(details.locator("details[open]")).toHaveCount(0);
+  await expect(details.getByText("APPLIED", { exact: true })).toBeVisible();
+  await details.getByText("Officer details", { exact: true }).click();
   await expect(
     details.getByText("TRANSFERRED OUT", { exact: true }),
   ).toBeVisible();
-  await expect(details.getByText("APPLIED", { exact: true })).toBeVisible();
+  await details
+    .getByText("Approval and recording details", { exact: true })
+    .click();
+  await expect(
+    details.getByText("Fictional UI Reviewer", { exact: true }),
+  ).toBeVisible();
   await expect(
     details.getByText("FICTIONAL_UI_EDITED_LAST_COLUMN", { exact: true }),
   ).toBeVisible();
@@ -401,13 +426,19 @@ test("record, edit, delete and independently approve officer changes without mix
     .getByLabel("Change effective year", { exact: true })
     .selectOption(String(past - 1));
   await page
-    .getByLabel("Change event filter", { exact: true })
+    .getByLabel("Change type filter", { exact: true })
     .selectOption("RETIREMENT");
   await table.getByRole("button", { name: "View", exact: true }).click();
   details = page.getByRole("dialog", {
     name: "Officer change details",
     exact: true,
   });
+  await expect(
+    details.getByText("FICTIONAL_RETIREMENT_REFERENCE", { exact: true }),
+  ).toBeVisible();
+  const officerToggle = details.getByText("Officer details", { exact: true });
+  await officerToggle.focus();
+  await officerToggle.press("Enter");
   const identity = details.getByRole("region", {
     name: "Officer details",
     exact: true,
