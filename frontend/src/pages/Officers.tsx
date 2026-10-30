@@ -24,7 +24,7 @@ export function Officers() {
   const archive = params.get("archive") === "archived" ? "archived" : "active";
   const [search, setSearch] = useState(params.get("q") ?? "");
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState("fullName");
+  const [sort, setSort] = useState("seniority");
   const [direction, setDirection] = useState("asc");
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState(false);
@@ -228,6 +228,20 @@ export function Officers() {
           </div>
         </div>
         <div className="table-filters">
+          <select
+            aria-label="Officer order"
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value);
+              setDirection("asc");
+              setFilter("page", "1");
+            }}
+          >
+            <option value="seniority">Seniority (CO first)</option>
+            <option value="fullName">Name</option>
+            <option value="forceNumber">Force number</option>
+            <option value="createdAt">Date added</option>
+          </select>
           <select
             aria-label="Verification filter"
             value={params.get("recordStatus") ?? ""}

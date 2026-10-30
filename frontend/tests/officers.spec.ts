@@ -1,5 +1,8 @@
 import "dotenv/config";
 import { test, expect } from "@playwright/test";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { seal } from "../../tools/workbook-import-data.cjs";
 import { randomUUID } from "node:crypto";
 import argon2 from "argon2";
 import { createDatabase } from "../../backend/src/config/database";
@@ -11,8 +14,22 @@ const db = createDatabase(url),
   tag = "browser-" + randomUUID(),
   email = tag + "@example.invalid",
   password = "Fictional-Browser-Password-2026!";
-let userId: string, roleId: string;
+let userId: string,
+  roleId: string,
+  sourceBatchId = "",
+  sourceRowId = "";
+let sourceKey: Buffer;
 test.beforeAll(async () => {
+  await mkdir(".local", { recursive: true });
+  try {
+    await writeFile(".local/browser-source.key", randomBytes(32), {
+      flag: "wx",
+      mode: 0o600,
+    });
+  } catch (e: any) {
+    if (e.code !== "EEXIST") throw e;
+  }
+  sourceKey = await readFile(".local/browser-source.key");
   roleId = (await db.role.create({ data: { name: tag } })).id;
   for (const code of permissions) {
     const p = await db.permission.upsert({
@@ -41,6 +58,14 @@ test.afterAll(async () => {
   await db.officerServiceProfile.deleteMany({
     where: { officerId: { in: ids } },
   });
+  if (sourceRowId)
+    await db.systemSetting.deleteMany({
+      where: { settingKey: "_import.review." + sourceRowId },
+    });
+  if (sourceBatchId) {
+    await db.importRow.deleteMany({ where: { batchId: sourceBatchId } });
+    await db.importBatch.delete({ where: { id: sourceBatchId } });
+  }
   await db.officer.deleteMany({ where: { id: { in: ids } } });
   await db.auditLog.deleteMany({ where: { userId } });
   await db.userSession.deleteMany({ where: { userId } });
@@ -81,6 +106,56 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     }),
   ).toBeVisible();
   await expect(page.getByText("00001234", { exact: true })).toBeVisible();
+  const sourceOfficerId = new URL(page.url()).pathname.split("/")[2];
+  const batch = await db.importBatch.create({
+    data: {
+      filename: "Fictional browser workbook",
+      fileSha256: tag,
+      uploadedById: userId,
+      status: "CORE_IMPORTED_REVIEW_PENDING",
+      totalRows: 1,
+      importedRows: 1,
+    },
+  });
+  sourceBatchId = batch.id;
+  const source = await db.importRow.create({
+    data: {
+      batchId: batch.id,
+      sheetName: "NAMES",
+      rowNumber: 2,
+      officerId: sourceOfficerId,
+      rawData: seal(
+        {
+          2: tag,
+          6: "Fictional Browser Officer",
+          4: "Fictional Specialist Designation",
+          36: "FICTIONAL_BANK_SOURCE",
+        },
+        sourceKey,
+        `${tag}:NAMES:2`,
+      ),
+      unresolvedDates: {},
+      validationErrors: [],
+      status: "CORE_IMPORTED_REVIEW_PENDING",
+    },
+  });
+  sourceRowId = source.id;
+  await page
+    .getByRole("tab", { name: "Workbook details", exact: true })
+    .click();
+  await expect(
+    page.getByText("Fictional Specialist Designation", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Mark checked", exact: true })
+    .first()
+    .click();
+  await expect(page.getByText(/Source checked ·/)).toBeVisible();
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+
   await page.getByRole("link", { name: "Edit record" }).click();
   await page
     .getByLabel("Full name", { exact: false })

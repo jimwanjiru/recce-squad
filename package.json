@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "RECCE officers personnel management system",
   "scripts": {
-    "test": "node tools/design.test.cjs && node --test tools/mariadb-recovery.test.cjs tools/workbook-import.test.cjs && tsx backend/tests/unit.test.ts",
+    "test": "node tools/design.test.cjs && node --test tools/mariadb-recovery.test.cjs tools/workbook-import.test.cjs && tsx backend/tests/unit.test.ts && tsx backend/tests/seniority.test.ts",
     "schema:validate": "node tools/validate-schema.cjs",
     "workbook:analyze": "node tools/analyze-workbook.cjs",
     "test:integration": "tsx backend/tests/integration.test.ts && tsx backend/tests/officers.test.ts && tsx backend/tests/organization.test.ts",
@@ -27,8 +27,9 @@
     "db:recover:mariadb": "tsx tools/migrate.ts --recover-mariadb-constraints",
     "workbook:import": "tsx tools/import-workbook.ts",
     "test:workbook:integration": "tsx backend/tests/workbook-import.test.ts",
-    "typecheck:import": "tsc --noEmit --target es2022 --module nodenext --esModuleInterop --skipLibCheck --types node tools/import-workbook.ts",
-    "db:seed:workbook": "node tools/seed-workbook.cjs"
+    "typecheck:import": "tsc --noEmit --target es2022 --module nodenext --esModuleInterop --skipLibCheck --types node tools/import-workbook.ts tools/rollback-workbook.ts",
+    "db:seed:workbook": "node tools/seed-workbook.cjs",
+    "db:rollback:workbook": "tsx tools/rollback-workbook.ts"
   },
   "repository": {
     "type": "git",

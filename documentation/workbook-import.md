@@ -73,10 +73,40 @@ npm run local:start
 
 Open **http://localhost:3000**, sign in with your existing account, and open the officer register. Clear rank, unit or status filters if they exclude UNVERIFIED officers. Profile fields still require their normal view permissions.
 
-The import generates `.local/workbook-import.key` for authenticated AES-256-GCM encryption of source rows and unresolved-date payloads. Back up this key privately **after the first import**, together with the database and original workbook. Without it the staged source cannot be decrypted. Do not replace/delete the key or publish it. Windows users should restrict the `.local` folder to their own account; POSIX owner-only modes do not substitute for Windows ACLs. The source-review UI and historical-record promotion remain later work; encrypted staging preserves those values for that review.
+The import generates `.local/workbook-import.key` for authenticated AES-256-GCM encryption of source rows and unresolved-date payloads. Back up this key privately **after the first import**, together with the database and original workbook. Without it the staged source cannot be decrypted. Do not replace/delete the key or publish it. Windows users should restrict the `.local` folder to their own account; POSIX owner-only modes do not substitute for Windows ACLs. The source-review interface is described below. Historical-record promotion remains a separate verified action; encrypted staging preserves the original values.
 
 If anything fails, share only the error code and aggregate output. Do not paste rows, account numbers, `.env` contents or encryption keys.
 
 ## Validation
 
 Fictional tests cover ambiguous dates, conflicting birth/enlistment chronology, source duplicates, encrypted bank/source values, permission denial, transaction rollback after a late failure, repeated-file idempotence, changed-file hashes and preserving existing officers. The actual workbook is used only for an aggregate preview in the cloud workspace; real records are written only when you run the commit command on your laptop.
+
+## Review all original officer fields in the application
+
+After updating/building and starting the app, open an officer profile and select **Workbook details**. It displays all 38 NAMES columns with their original cached cell values, including fields not promoted into operational tables. The record is linked by import provenance and its source force number is checked against the officer on every read/review. A changed name is highlighted for comparison.
+
+Each visible field can be marked **checked** or **needs correction** by an authorized reviewer. Reviews retain reviewer ID, timestamp and revision in a separate source-review record. Concurrent/stale reviews receive a conflict rather than overwriting another review. Reviews do not change the original source or activate official rank, movement, assignment, retirement or strength rules. Correcting/promoting those operational records remains a separate verified action.
+
+Source read requires officers.view and fields.import_source.view, plus the individual field view permission. Reviewing additionally requires imports.commit, fields.import_source.write and the individual field's write permission. Bank/disciplinary/demographic values never become visible merely because someone can open a profile. Raw source is decrypted on the server using the private import key and returned only after these checks; audit logs contain column identifiers and review actions, never values.
+
+**Other workbook sheets** provides paginated original CHANGES, TRIBE and SUB UNIT STRENGTH rows, including section headings and source totals. Because column meanings vary between sections, viewing these sheets requires every relevant sensitive read grant. These are source documents for manual comparison; section rows are not automatically asserted to be individual movements or current staffing facts. Per-field checking is available for NAMES officer details; the other sheets are currently a read-only source viewer.
+
+## Seniority ordering and the CO
+
+The default officer-register order is **Seniority (CO first)**. Set the exact CO force number in your private `.env`:
+
+```dotenv
+CO_FORCE_NUMBER=YOUR_CO_FORCE_NUMBER
+```
+
+Restart the app after changing it. The matching CO appears first. All other numeric force numbers follow in ascending numeric order, retaining full precision and original spellings. Non-numeric identifiers follow numeric identifiers. The setting applies to display ordering only; it never rewrites ranks or creates rank histories. Other order choices remain available in the register. The CO identifier is private configuration, not a committed personnel record.
+
+## Roll back a pristine import
+
+An import failure automatically rolls back the import's database transaction. To reverse a successful batch before anyone edits or reviews its officers, stop the app, back up the database, and use the batch ID printed by the seeder:
+
+```cmd
+npm run db:rollback:workbook -- --batch PASTE_BATCH_ID_HERE --backup-confirmed
+```
+
+The command checks the local operator's grants and all batch officers first. It refuses reviewed, edited, archived or operationally linked officers rather than deleting later work. For an unchanged batch it removes only officers/initial education created by that batch, detaches source links, retains the encrypted source rows and marks the batch ROLLED_BACK, with an audit entry. Repeating rollback is a no-op. A rolled-back file can subsequently be imported again; if another successful batch for the same file still exists, the normal duplicate-file guard applies. Later manual work requires a reviewed recovery or restoration from your protected backup, not a force-delete switch.

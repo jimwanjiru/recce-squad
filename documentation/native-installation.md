@@ -2,7 +2,7 @@
 
 Install **Node.js 24 LTS** (includes npm) and **MySQL Community Server 8.4 LTS**, or use your existing **MariaDB 10.11** server directly on your laptop. Git is optional if you download/extract the GitHub ZIP. You do not need Python, Bash, Docker, MySQL Workbench or a separate frontend server. Windows PowerShell, macOS Terminal and Linux terminals use the same npm commands below. Windows may require `npm.cmd` if PowerShell blocks `npm.ps1`.
 
-This starts the current officer and organization modules. A [local workbook importer](workbook-import.md) is available for core officer records and encrypted source staging. Movement approvals, calculated reports, document uploads, source-review screens and workbook export remain pending. No real officer data is included and personnel policies stay inactive.
+This starts the current officer and organization modules. A [local workbook importer](workbook-import.md) is available for core officer records and encrypted source staging. Movement approvals, calculated reports, document uploads and workbook export remain pending. Officer profiles now include workbook source details and a review checklist. No real officer data is included and personnel policies stay inactive.
 
 ## 1. Install and prepare MySQL
 

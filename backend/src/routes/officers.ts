@@ -1,3 +1,4 @@
+import { compareSeniority } from "../services/seniority.js";
 import { Router, Request, Response, NextFunction } from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
@@ -27,6 +28,7 @@ const need = (res: Response, permission: string) => {
 };
 const readSelect = (res: Response) => ({
   ...permittedOfficerSelect(actor(res).grants),
+  id: true,
   dateEnlisted: actor(res).grants.has("fields.date_enlisted.view"),
   version: true,
   deletedAt: true,
@@ -168,8 +170,8 @@ export function officerRoutes(db: PrismaClient) {
           q: z.string().max(100).optional(),
           archive: z.enum(["active", "archived", "all"]).default("active"),
           sort: z
-            .enum(["fullName", "forceNumber", "createdAt"])
-            .default("fullName"),
+            .enum(["seniority", "fullName", "forceNumber", "createdAt"])
+            .default("seniority"),
           direction: z.enum(["asc", "desc"]).default("asc"),
           recordStatus: z.string().max(50).optional(),
           rankId: z.string().max(191).optional(),
@@ -210,16 +212,48 @@ export function officerRoutes(db: PrismaClient) {
             }
           : {}),
       };
-      const [data, total] = await db.$transaction([
-        db.officer.findMany({
-          where,
-          select: readSelect(res),
-          skip: (q.page - 1) * q.pageSize,
-          take: q.pageSize,
-          orderBy: [{ [q.sort]: q.direction }, { id: "asc" }],
-        }),
-        db.officer.count({ where }),
-      ]);
+      const [data, total] =
+        q.sort === "seniority"
+          ? await db.$transaction(async (tx) => {
+              const candidates = await tx.officer.findMany({
+                where,
+                select: { id: true, forceNumber: true },
+              });
+              candidates.sort((a, b) => compareSeniority(a, b));
+              // CO stays first; descending reverses the remaining officer ordering only.
+              if (q.direction === "desc") {
+                const co = candidates.find(
+                  (o) => o.forceNumber === process.env.CO_FORCE_NUMBER,
+                );
+                const rest = candidates.filter((o) => o !== co).reverse();
+                candidates.splice(
+                  0,
+                  candidates.length,
+                  ...(co ? [co, ...rest] : rest),
+                );
+              }
+              const page = candidates.slice(
+                (q.page - 1) * q.pageSize,
+                q.page * q.pageSize,
+              );
+              const rows = await tx.officer.findMany({
+                where: { id: { in: page.map((o) => o.id) } },
+                select: readSelect(res),
+              });
+              const positions = new Map(page.map((o, i) => [o.id, i]));
+              rows.sort((a, b) => positions.get(a.id)! - positions.get(b.id)!);
+              return [rows, candidates.length] as const;
+            })
+          : await db.$transaction([
+              db.officer.findMany({
+                where,
+                select: readSelect(res),
+                skip: (q.page - 1) * q.pageSize,
+                take: q.pageSize,
+                orderBy: [{ [q.sort]: q.direction }, { id: "asc" }],
+              }),
+              db.officer.count({ where }),
+            ]);
       res.json({ data, meta: { total, page: q.page, pageSize: q.pageSize } });
     }),
   );

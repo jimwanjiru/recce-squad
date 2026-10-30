@@ -1,4 +1,7 @@
 import "dotenv/config";
+import request from "supertest";
+import argon2 from "argon2";
+import { createApp } from "../src/app.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -65,7 +68,7 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
       data: {
         email: tag + "@example.invalid",
         name: "Fictional Import Operator",
-        passwordHash: "not-a-login-hash",
+        passwordHash: await argon2.hash("Fictional-Import-Password-2026!"),
       },
     });
     actorId = actor.id;
@@ -159,6 +162,105 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
       where: { forceNumber: tag + "-2" },
     });
     assert.notEqual(original.fullName, "Fictional attempted overwrite");
+    const previousKeyPath = process.env.WORKBOOK_IMPORT_KEY_PATH;
+    process.env.WORKBOOK_IMPORT_KEY_PATH = path.join(
+      dir,
+      ".local/workbook-import.key",
+    );
+    try {
+      const app = await createApp(db, {
+        origin: "http://localhost:3000",
+        production: false,
+      });
+      const agent = request.agent(app);
+      const login = await agent
+        .post("/api/auth/login")
+        .set("Origin", "http://localhost:3000")
+        .send({
+          email: actor.email,
+          password: "Fictional-Import-Password-2026!",
+        });
+      assert.equal(login.status, 200);
+      const source = await agent.get(
+        "/api/officers/" + original.id + "/workbook-details",
+      );
+      assert.equal(source.status, 200);
+      assert.equal(source.body.data[0].fields.length, 38);
+      assert.equal(source.body.data[0].identityCheck.nameMatches, true);
+      const sheetUrl =
+        "/api/workbook-source?batchId=" + batch.id + "&sheet=CHANGES";
+      assert.equal((await agent.get(sheetUrl)).status, 200);
+      const rowId = source.body.data[0].rowId;
+      const reviewUrl =
+        "/api/officers/" +
+        original.id +
+        "/workbook-details/" +
+        rowId +
+        "/review";
+      const csrf = login.body.data.csrfToken;
+      const save = () =>
+        agent
+          .post(reviewUrl)
+          .set("Origin", "http://localhost:3000")
+          .set("X-CSRF-Token", csrf)
+          .send({ column: 4, decision: "CHECKED", expectedRevision: 0 });
+      assert.equal((await save()).status, 200);
+      assert.equal((await save()).status, 409);
+      const finance = await db.permission.findUniqueOrThrow({
+        where: { code: "fields.financial_details.view" },
+      });
+      await db.rolePermission.delete({
+        where: { roleId_permissionId: { roleId, permissionId: finance.id } },
+      });
+      const restricted = await agent.get(
+        "/api/officers/" + original.id + "/workbook-details",
+      );
+      assert.equal(restricted.status, 200);
+      assert.equal((await agent.get(sheetUrl)).status, 403);
+      assert(!restricted.body.data[0].fields.some((f: any) => f.column === 36));
+      const rollbackArgs = [
+        "--import",
+        pathToFileURL(require.resolve("tsx")).href,
+        path.resolve("tools/rollback-workbook.ts"),
+        "--batch",
+        batch.id,
+        "--backup-confirmed",
+        "--actor",
+        actor.email,
+      ];
+      const rollback = () =>
+        spawnSync(process.execPath, rollbackArgs, {
+          cwd: dir,
+          env: { ...process.env, DATABASE_URL: url, NODE_ENV: "test" },
+          encoding: "utf8",
+        });
+      const blocked = rollback();
+      assert.equal(blocked.status, 1);
+      assert(
+        blocked.stderr.includes("REVIEWED_RECORDS_REQUIRE_MANUAL_ROLLBACK"),
+      );
+      // Reset only the test review so the pristine-import rollback path can be exercised.
+      await db.systemSetting.deleteMany({
+        where: { settingKey: "_import.review." + rowId },
+      });
+      await db.importRow.update({
+        where: { id: rowId },
+        data: { verificationStatus: "UNVERIFIED" },
+      });
+      const reverted = rollback();
+      assert.equal(reverted.status, 0, reverted.stderr);
+      assert.equal(await db.officer.count(), baseline);
+      assert.equal(
+        (await db.importBatch.findUniqueOrThrow({ where: { id: batch.id } }))
+          .status,
+        "ROLLED_BACK",
+      );
+      assert.equal(rollback().status, 0);
+    } finally {
+      if (previousKeyPath === undefined)
+        delete process.env.WORKBOOK_IMPORT_KEY_PATH;
+      else process.env.WORKBOOK_IMPORT_KEY_PATH = previousKeyPath;
+    }
     assert(!commit.stdout.includes("Fictional Import Officer"));
     assert(!commit.stderr.includes("ACCOUNT-SECRET"));
   } finally {
@@ -184,6 +286,7 @@ test("local workbook import is atomic, permission checked, encrypted and repeat-
     if (actorId) {
       await db.auditLog.deleteMany({ where: { userId: actorId } });
       await db.userRole.deleteMany({ where: { userId: actorId } });
+      await db.userSession.deleteMany({ where: { userId: actorId } });
       await db.user.delete({ where: { id: actorId } });
     }
     if (roleId) {

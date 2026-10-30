@@ -74,7 +74,10 @@ async function main() {
         if (!actor?.isActive || needed.some((p) => !grants.has(p)))
           throw new Error("IMPORT_ACTOR_NOT_AUTHORIZED");
         const prior = await tx.importBatch.findFirst({
-          where: { fileSha256: workbook.sha256 },
+          where: {
+            fileSha256: workbook.sha256,
+            status: { not: "ROLLED_BACK" },
+          },
         });
         if (prior)
           return {

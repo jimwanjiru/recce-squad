@@ -1,3 +1,4 @@
+import { WorkbookDetails } from "../components/WorkbookDetails";
 import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import { Confirm, Empty, ErrorNotice, Loading } from "../components/shared";
 const sections = [
+  { key: "workbook", label: "Workbook details", permission: "import_source" },
   { key: "overview", label: "Overview" },
   {
     key: "service",
@@ -329,7 +331,9 @@ export function Profile() {
             <h2>{tabs.find((t) => t.key === tab)?.label}</h2>
             <ShieldCheck size={17} />
           </div>
-          {tab === "overview" ? (
+          {tab === "workbook" ? (
+            <WorkbookDetails id={id!} />
+          ) : tab === "overview" ? (
             <>
               <dl className="detail-grid overview-grid">
                 {[
