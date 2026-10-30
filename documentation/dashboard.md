@@ -6,11 +6,11 @@ The dashboard reads the workbook rows already stored by the real-workbook seeder
 
 ## Counts and group definitions
 
-- Total officers: current register records excluding archived records; no service-status eligibility is inferred. The page separately identifies unverified and archived records.
+- Total officers: serving register records excluding archived records and explicitly recorded exit statuses; suspension remains included and no operational-strength eligibility rule is inferred. The page separately identifies unverified and archived records.
 - RECCE: linked officer source rows with R in the membership column, independently of disposition. It overlaps team membership and must not be added to the group totals.
 - Group breakdown: MO (Main Office), HQS, RRT, CRT, GP1–GP4, CTSO, SPEAR and NA. CRT is the confirmed workbook code; SRT in the original request was a typing error. NA means Not assigned / Not applicable. Other and blank dispositions remain visible for reconciliation.
 
-Categories and source comparison come from the imported **SUB UNIT STRENGTH** worksheet. The register breakdown is recomputed from each linked NAMES row's disposition, with the source force number validated against its officer. Each officer is counted once. Archived officers and rolled-back batches are excluded. Officers without usable source rows remain in the register total and are explicitly counted as missing source coverage, not assigned to an invented group.
+Categories and source comparison come from the imported **SUB UNIT STRENGTH** worksheet. The register breakdown prefers verified current assignments/ranks and otherwise uses linked NAMES values, with source force numbers validated against their officer. Directly registered officers can enter through verified current records without an Excel row. Each officer is counted once. Archived officers and rolled-back batches are excluded. Officers without usable source or verified current records remain in the register total and are explicitly counted as missing coverage, not assigned to an invented group.
 
 Source data remains unverified until reviewed. These are register/source counts, not an approved operational strength calculation. They do not apply assumed retirement, absence, deployment or status-inclusion policies. They do not assert that a workbook placement is a verified current assignment.
 

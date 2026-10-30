@@ -10,6 +10,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { z, ZodError } from "zod";
 import { HttpError } from "./services/errors.js";
 import { organizationRoutes } from "./routes/organization.js";
+import { changesRoutes } from "./routes/changes.js";
 import { groupRosterRoutes } from "./routes/group-roster.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { workbookReviewRoutes } from "./routes/workbook-review.js";
@@ -36,6 +37,7 @@ export async function createApp(db: PrismaClient, options: AppOptions) {
   app.disable("x-powered-by");
   app.set("query parser", "simple");
   app.use(helmet());
+  app.use("/api/changes", express.json({ limit: "1mb" }));
   app.use(express.json({ limit: "64kb" }));
   app.use(cookieParser());
   app.use("/api", (_req, res, next) => {
@@ -299,6 +301,7 @@ export async function createApp(db: PrismaClient, options: AppOptions) {
   app.use("/api", workbookReviewRoutes(db));
   app.use("/api", dashboardRoutes(db));
   app.use("/api", groupRosterRoutes(db));
+  app.use("/api", changesRoutes(db));
   app.use("/api", organizationRoutes(db));
   app.get(
     "/api/permissions",

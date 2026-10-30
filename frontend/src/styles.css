@@ -2113,3 +2113,166 @@ td.mono {
 .rank-group-filter select {
   width: 100%;
 }
+.changes-page {
+  display: grid;
+  gap: 20px;
+}
+.changes-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.changes-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.changes-filters label,
+.changes-plan-grid label,
+.changes-column-grid label,
+.changes-officer-lookup label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  color: #63748d;
+}
+.changes-table {
+  min-width: 7600px;
+}
+.changes-table th {
+  min-width: 145px;
+}
+.changes-row-actions {
+  min-width: 170px;
+}
+.changes-row-actions button {
+  margin: 3px;
+}
+.change-cell-value {
+  max-width: 210px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.changes-table small {
+  display: block;
+  font-size: 10px;
+  color: #8291a8;
+  margin-top: 5px;
+}
+.changes-table-note {
+  padding: 16px 24px;
+  font-size: 12px;
+  color: #63748d;
+  line-height: 1.6;
+}
+.changes-dialog {
+  width: min(1060px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow: auto;
+  margin: auto;
+  padding: 24px;
+  border: 1px solid #dce5f2;
+  border-radius: 12px;
+  color: #243c5a;
+  box-shadow: 0 20px 70px #10254035;
+}
+.changes-dialog::backdrop {
+  background: #10233f8c;
+}
+.changes-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 14px;
+}
+.changes-dialog h2 {
+  font-size: 20px;
+}
+.changes-dialog h3 {
+  font-size: 15px;
+  margin: 24px 0 16px;
+}
+.changes-dialog p {
+  font-size: 12px;
+  color: #63748d;
+  line-height: 1.7;
+  margin: 14px 0;
+}
+.changes-plan-grid,
+.changes-column-grid,
+.changes-officer-lookup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+.changes-column-grid textarea {
+  min-height: 70px;
+  resize: vertical;
+  border: 1px solid #dbe5f2;
+  border-radius: 7px;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.changes-column-grid label {
+  padding: 13px;
+  border: 1px solid #e7edf5;
+  background: #fbfcfe;
+  border-radius: 8px;
+}
+.changes-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  position: sticky;
+  bottom: -24px;
+  background: #fff;
+  padding: 16px 0;
+  border-top: 1px solid #e5ecf5;
+  margin-top: 22px;
+}
+.changes-small-dialog {
+  width: min(600px, calc(100vw - 32px));
+}
+.changes-small-dialog .changes-column-grid {
+  grid-template-columns: 1fr;
+}
+@media (max-width: 700px) {
+  .changes-filters,
+  .changes-plan-grid,
+  .changes-column-grid,
+  .changes-officer-lookup {
+    grid-template-columns: 1fr;
+  }
+  .changes-dialog {
+    padding: 16px;
+  }
+  .changes-header-actions {
+    width: 100%;
+  }
+}
+.change-status {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.change-status-draft {
+  background: #edf2f8;
+  color: #63748d;
+}
+.change-status-submitted {
+  background: #fff3da;
+  color: #946b1f;
+}
+.change-status-applied {
+  background: #e6f6ed;
+  color: #28734a;
+}

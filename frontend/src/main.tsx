@@ -9,6 +9,9 @@ import {
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "./lib/auth";
+const Changes = React.lazy(() =>
+  import("./pages/Changes").then((m) => ({ default: m.Changes })),
+);
 const Dashboard = React.lazy(() =>
   import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })),
 );
@@ -60,6 +63,7 @@ function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
+        <Route path="/changes" element={<Changes />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/account" element={<Account />} />
         <Route path="/organization" element={<Organization />} />

@@ -82,6 +82,26 @@ export function message(error: unknown) {
       INVALID_CREDENTIALS: "The email or password is incorrect.",
       WORKBOOK_SOURCE_KEY_UNAVAILABLE_OR_INVALID:
         "The workbook source cannot be opened. Restore the matching .local/workbook-import.key from your protected backup.",
+      APPROVER_EMAIL_EXISTS:
+        "That email is already registered. Use the existing account or choose another approver email.",
+      CHANGE_SOURCE_ALREADY_LINKED:
+        "This workbook row already has a change record. Refresh the source view to see its status.",
+      CHANGE_REVISION_CONFLICT:
+        "This change was updated or is no longer editable. Refresh the register.",
+      CHANGE_SELF_APPROVAL_FORBIDDEN:
+        "A different authorized user must approve this change.",
+      VERIFIED_DATE_REQUIRED:
+        "Enter and verify the actual effective date. Letter dates are not automatically effective dates.",
+      FUTURE_CHANGE_NOT_DUE:
+        "This event is future-dated. It must stay submitted until its effective date.",
+      BACKDATED_OR_SAME_DAY_CHANGE_REQUIRES_REVIEW:
+        "This date conflicts with a later or same-day verified history. Keep the event for retrospective review; no histories were changed.",
+      CHANGE_TARGET_RANK_REQUIRED:
+        "Choose an active resulting rank before applying a reversion.",
+      WORKBOOK_OFFICER_IDENTITY_MISMATCH:
+        "The source force number does not match the selected officer.",
+      OFFICER_NOT_CURRENTLY_SERVING:
+        "This officer has left service. Record a verified taken-on-strength or reinstatement event first.",
       PERMISSION_DENIED: "You do not have permission for this action.",
       RECORD_CHANGED:
         "This record changed since you opened it. Refresh it before trying again.",

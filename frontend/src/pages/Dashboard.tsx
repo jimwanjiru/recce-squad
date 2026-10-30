@@ -26,6 +26,7 @@ type RankStrength = {
 type Summary = {
   totalOfficers: number;
   archivedOfficers: number;
+  formerOfficers: number;
   needsVerification: number;
   recce: number;
   sourceLinked: number;
@@ -75,7 +76,7 @@ function Analytics({ data }: { data: Summary }) {
   const rankLabel =
     rankGroup === "RECCE"
       ? "RECCE membership"
-      : rankFocus?.label || "All workbook-linked officers";
+      : rankFocus?.label || "All covered officers";
   const filled = data.rankBreakdown
     .map((rank) => ({
       ...rank,
@@ -102,7 +103,7 @@ function Analytics({ data }: { data: Summary }) {
           <div
             className="distribution-donut"
             role="img"
-            aria-label={`Group distribution: ${data.sourceLinked} workbook-linked officers`}
+            aria-label={`Group distribution: ${data.sourceLinked} workbook-covered officers`}
             style={{
               background: data.sourceLinked
                 ? `conic-gradient(${stops.join(",")})`
@@ -111,7 +112,7 @@ function Analytics({ data }: { data: Summary }) {
           >
             <div>
               <strong>{number(value)}</strong>
-              <span>{focus?.label || "Linked officers"}</span>
+              <span>{focus?.label || "Covered officers"}</span>
               {focus && (
                 <small>
                   {data.sourceLinked
@@ -185,7 +186,7 @@ function Analytics({ data }: { data: Summary }) {
             onChange={(event) => setRankGroup(event.target.value)}
           >
             <option value="ALL">
-              All workbook-linked officers ({number(data.sourceLinked)})
+              All covered officers ({number(data.sourceLinked)})
             </option>
             <option value="RECCE">
               RECCE membership ({number(data.recce)})
@@ -297,7 +298,7 @@ export function Dashboard() {
           {
             label: "Total officers",
             value: d.totalOfficers,
-            note: "Registered officers, excluding archived records",
+            note: "Serving register, excluding archives and recorded service exits",
             Icon: Users,
           },
           {
@@ -334,10 +335,10 @@ export function Dashboard() {
         ))}
       </div>
       <div className="notice" role="note">
-        Counts include unverified register records. Team placement follows
-        workbook disposition; RECCE membership overlaps these groups and should
-        not be added to them. These are register/source counts, not approved
-        operational strength.
+        Counts include unverified register records. Team placement uses verified
+        assignments first, then workbook disposition; RECCE membership overlaps
+        these groups and should not be added to them. These are register/source
+        counts, not approved operational strength.
       </div>
       <div
         className="analytics-view-tabs"
@@ -620,8 +621,9 @@ export function Dashboard() {
       )}
       <p className="dashboard-footnote">
         {number(d.needsVerification)} awaiting verification ·{" "}
+        {number(d.formerOfficers)} recorded service exits ·{" "}
         {number(d.archivedOfficers)} archived · {number(d.withoutSource)}{" "}
-        without a usable linked workbook row · {number(d.identityMismatches)}{" "}
+        without current or source coverage · {number(d.identityMismatches)}{" "}
         source identity mismatches. Counts refreshed on{" "}
         {dateLabel(d.generatedAt)}. Status-based nominal and operational
         strength rules remain separate.

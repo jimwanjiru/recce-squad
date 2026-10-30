@@ -1,3 +1,4 @@
+import { serviceExitStatuses } from "./changes-fields.js";
 import { PrismaClient } from "@prisma/client";
 import { groupCodes, groupLabels, sourceRank } from "./dashboard.js";
 import {
@@ -16,7 +17,7 @@ export const rosterPermissions = [
   "fields.service_profile.view",
 ];
 export async function groupRoster(
-  db: Pick<PrismaClient, "importRow">,
+  db: Pick<PrismaClient, "importRow" | "officer">,
   query: {
     group: string;
     rank?: string;
@@ -52,7 +53,10 @@ export async function groupRoster(
       where: {
         sheetName: "NAMES",
         officerId: { not: null },
-        officer: { deletedAt: null },
+        officer: {
+          deletedAt: null,
+          recordStatus: { notIn: serviceExitStatuses },
+        },
         batch: { status: { not: "ROLLED_BACK" } },
       },
       select: {
@@ -77,6 +81,7 @@ export async function groupRoster(
               select: {
                 unit: { select: { code: true } },
                 subUnit: { select: { code: true } },
+                disposition: true,
               },
               take: 1,
             },
@@ -101,7 +106,14 @@ export async function groupRoster(
         continue;
       }
       seen.add(officer.id);
-      const disposition = sourceText(raw["20"])
+      const currentAssignment = officer.assignments[0];
+      const disposition = sourceText(
+        currentAssignment
+          ? currentAssignment.subUnit?.code ||
+              currentAssignment.disposition ||
+              currentAssignment.unit.code
+          : raw["20"],
+      )
         .trim()
         .toUpperCase()
         .replace(/\s+/g, "");
@@ -113,7 +125,7 @@ export async function groupRoster(
       const isRecce = sourceText(raw["22"]).trim().toUpperCase() === "R";
       counts[group] = (counts[group] || 0) + 1;
       if (isRecce) counts.RECCE = (counts.RECCE || 0) + 1;
-      const rank = sourceRank(raw["5"]);
+      const rank = sourceRank(officer.rankHistories[0]?.rank.code || raw["5"]);
       if (
         query.group !== "ALL" &&
         !(query.group === "RECCE" ? isRecce : group === query.group)
@@ -139,12 +151,91 @@ export async function groupRoster(
         isRecce,
         verifiedRank: officer.rankHistories[0]?.rank.code || null,
         verifiedGroup: assignment
-          ? assignment.subUnit?.code || assignment.unit.code
+          ? assignment.subUnit?.code ||
+            assignment.disposition ||
+            assignment.unit.code
           : null,
       });
     }
     if (rows.length < 150) break;
     cursor = rows[rows.length - 1]!.id;
+  }
+  const verifiedOnly = await db.officer.findMany({
+    where: {
+      deletedAt: null,
+      recordStatus: { notIn: serviceExitStatuses },
+      id: { notIn: [...seen] },
+      OR: [
+        { assignments: { some: { ...effective, isPrimary: true } } },
+        { rankHistories: { some: effective } },
+      ],
+    },
+    select: {
+      id: true,
+      forceNumber: true,
+      fullName: true,
+      recordStatus: true,
+      rankHistories: {
+        where: effective,
+        select: { rank: { select: { code: true } } },
+        take: 1,
+      },
+      assignments: {
+        where: { ...effective, isPrimary: true },
+        select: {
+          unit: { select: { code: true } },
+          subUnit: { select: { code: true } },
+          disposition: true,
+        },
+        take: 1,
+      },
+    },
+  });
+  for (const officer of verifiedOnly) {
+    seen.add(officer.id);
+    const assignment = officer.assignments[0],
+      rawGroup = assignment
+        ? assignment.subUnit?.code ||
+          assignment.disposition ||
+          assignment.unit.code
+        : "";
+    const disposition = rawGroup.toUpperCase().replace(/\s+/g, ""),
+      group = groupCodes.includes(disposition as any)
+        ? disposition
+        : disposition
+          ? "OTHER"
+          : "UNSPECIFIED";
+    const isRecce =
+        !!assignment &&
+        ["R", "RECCE"].includes(assignment.unit.code.toUpperCase()),
+      rank = sourceRank(officer.rankHistories[0]?.rank.code || "");
+    counts[group] = (counts[group] || 0) + 1;
+    if (isRecce) counts.RECCE = (counts.RECCE || 0) + 1;
+    if (
+      query.group !== "ALL" &&
+      !(query.group === "RECCE" ? isRecce : query.group === group)
+    )
+      continue;
+    if (query.rank && rank !== query.rank) continue;
+    if (
+      query.q &&
+      !`${officer.forceNumber} ${officer.fullName}`
+        .toLocaleLowerCase()
+        .includes(query.q.toLocaleLowerCase())
+    )
+      continue;
+    matches.push({
+      id: officer.id,
+      forceNumber: officer.forceNumber,
+      fullName: officer.fullName,
+      rank,
+      originalRank: "",
+      group,
+      isRecce,
+      recordStatus: officer.recordStatus,
+      verifiedRank: officer.rankHistories[0]?.rank.code || null,
+      verifiedGroup: rawGroup || null,
+    });
   }
   matches.sort((a, b) => compareSeniority(a, b));
   const groups = [

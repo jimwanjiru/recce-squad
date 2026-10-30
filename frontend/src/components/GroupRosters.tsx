@@ -79,7 +79,8 @@ export function GroupRosters() {
           <p className="eyebrow">GROUPS & PERSONNEL</p>
           <h1>Organization</h1>
           <p className="muted">
-            Browse each workbook group and its officers, with recorded ranks.
+            Browse sub-units and their officers. Verified current records take
+            precedence over workbook values.
           </p>
         </div>
       </div>
@@ -99,7 +100,9 @@ export function GroupRosters() {
         <div className="panel-title">
           <div>
             <h2>{selected?.label || "Officer roster"}</h2>
-            <p className="muted">Workbook placement — pending verification</p>
+            <p className="muted">
+              Current placements, with workbook values awaiting verification
+            </p>
           </div>
           <Users size={20} />
         </div>
@@ -149,8 +152,8 @@ export function GroupRosters() {
                   <tr>
                     <th>Force number</th>
                     <th>Officer</th>
-                    <th>Workbook rank</th>
-                    <th>Workbook group</th>
+                    <th>Current / source rank</th>
+                    <th>Current / source sub-unit</th>
                     <th>Verified record</th>
                   </tr>
                 </thead>
@@ -222,10 +225,11 @@ export function GroupRosters() {
         )}
       </section>
       <p className="dashboard-footnote">
-        Groups are based on the imported workbook. RECCE membership overlaps the
-        other groups. Verified current assignments and ranks, when available,
-        appear separately. {result.data?.meta.identityMismatches || 0} source
-        identity mismatches are excluded.
+        Verified current placements are used first, with workbook values as a
+        fallback. RECCE membership overlaps the other groups. Verified current
+        assignments and ranks, when available, appear separately.{" "}
+        {result.data?.meta.identityMismatches || 0} source identity mismatches
+        are excluded.
       </p>
     </div>
   );

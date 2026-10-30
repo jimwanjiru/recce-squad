@@ -58,3 +58,8 @@ erDiagram
     User ||--o{ UserSession : userId
     User o|--o{ StrengthInclusionRule : approvedById
 ```
+
+
+## CHANGES draft and approval layer
+
+OfficerChange is the additional draft layer for nullable/unverified event dates and encrypted workbook columns. Its required officer/recorder foreign keys and optional approver, source row, applied PersonnelMovement, target unit/sub-unit/rank and self-amendment links use RESTRICT. SourceImportRow and applied movement links are unique. The complete schema is the authority for all 37 models. See changes.md for the transaction and year-separation behavior.

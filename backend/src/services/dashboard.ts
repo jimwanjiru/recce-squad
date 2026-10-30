@@ -1,3 +1,5 @@
+import { serviceExitStatuses } from "./changes-fields.js";
+import { businessDate } from "./history.js";
 import { PrismaClient } from "@prisma/client";
 import {
   openSource,
@@ -92,12 +94,24 @@ export function tallyOfficer(
 export async function dashboardSummary(
   db: Pick<PrismaClient, "officer" | "importRow" | "importBatch">,
 ) {
-  const [totalOfficers, archivedOfficers, needsVerification] =
+  const today = new Date(businessDate() + "T00:00:00Z");
+  const effective = {
+    effectiveFrom: { lte: today },
+    OR: [{ effectiveTo: null }, { effectiveTo: { gt: today } }],
+  };
+  const serving = {
+    deletedAt: null,
+    recordStatus: { notIn: serviceExitStatuses },
+  };
+  const [totalOfficers, archivedOfficers, needsVerification, formerOfficers] =
     await Promise.all([
-      db.officer.count({ where: { deletedAt: null } }),
+      db.officer.count({ where: serving }),
       db.officer.count({ where: { deletedAt: { not: null } } }),
       db.officer.count({
         where: { deletedAt: null, recordStatus: "UNVERIFIED" },
+      }),
+      db.officer.count({
+        where: { deletedAt: null, recordStatus: { in: serviceExitStatuses } },
       }),
     ]);
   const counts: Record<string, number> = {};
@@ -117,7 +131,7 @@ export async function dashboardSummary(
       where: {
         sheetName: "NAMES",
         officerId: { not: null },
-        officer: { deletedAt: null },
+        officer: serving,
         batch: { status: { not: "ROLLED_BACK" } },
       },
       select: {
@@ -127,7 +141,25 @@ export async function dashboardSummary(
         sheetName: true,
         rowNumber: true,
         batch: { select: { fileSha256: true } },
-        officer: { select: { forceNumber: true } },
+        officer: {
+          select: {
+            forceNumber: true,
+            rankHistories: {
+              where: effective,
+              select: { rank: { select: { code: true } } },
+              take: 1,
+            },
+            assignments: {
+              where: { ...effective, isPrimary: true },
+              select: {
+                unit: { select: { code: true } },
+                subUnit: { select: { code: true } },
+                disposition: true,
+              },
+              take: 1,
+            },
+          },
+        },
       },
       orderBy: { id: "asc" },
       take: 150,
@@ -146,13 +178,23 @@ export async function dashboardSummary(
         continue;
       }
       seen.add(row.officerId);
-      const belongsToRecce = tallyOfficer(raw, counts);
+      const assignment = row.officer.assignments[0];
+      const currentRaw = {
+        ...raw,
+        5: row.officer.rankHistories[0]?.rank.code || raw["5"],
+        20: assignment
+          ? assignment.subUnit?.code ||
+            assignment.disposition ||
+            assignment.unit.code
+          : raw["20"],
+      };
+      const belongsToRecce = tallyOfficer(currentRaw, counts);
       if (belongsToRecce) recce++;
-      const rank = sourceRank(raw["5"]);
+      const rank = sourceRank(currentRaw["5"]);
       rankCounts[rank] = (rankCounts[rank] || 0) + 1;
       if (belongsToRecce)
         recceRankCounts[rank] = (recceRankCounts[rank] || 0) + 1;
-      const disposition = code(raw["20"]);
+      const disposition = code(currentRaw["20"]);
       const group = groupCodes.includes(disposition as any)
         ? disposition
         : disposition
@@ -162,6 +204,63 @@ export async function dashboardSummary(
     }
     if (rows.length < 150) break;
     cursor = rows[rows.length - 1]!.id;
+  }
+  // Officers registered directly can enter the report through verified assignments/ranks without an Excel row.
+  const verifiedOnly = await db.officer.findMany({
+    where: {
+      ...serving,
+      id: { notIn: [...seen] },
+      OR: [
+        { assignments: { some: { ...effective, isPrimary: true } } },
+        { rankHistories: { some: effective } },
+      ],
+    },
+    select: {
+      id: true,
+      rankHistories: {
+        where: effective,
+        select: { rank: { select: { code: true } } },
+        take: 1,
+      },
+      assignments: {
+        where: { ...effective, isPrimary: true },
+        select: {
+          unit: { select: { code: true } },
+          subUnit: { select: { code: true } },
+          disposition: true,
+        },
+        take: 1,
+      },
+    },
+  });
+  for (const officer of verifiedOnly) {
+    const assignment = officer.assignments[0];
+    const raw = {
+      5: officer.rankHistories[0]?.rank.code || "",
+      20: assignment
+        ? assignment.subUnit?.code ||
+          assignment.disposition ||
+          assignment.unit.code
+        : "",
+      22:
+        assignment &&
+        ["R", "RECCE"].includes(assignment.unit.code.toUpperCase())
+          ? "R"
+          : "",
+    };
+    seen.add(officer.id);
+    const belongs = tallyOfficer(raw, counts);
+    if (belongs) recce++;
+    const rank = sourceRank(raw[5]);
+    rankCounts[rank] = (rankCounts[rank] || 0) + 1;
+    if (belongs) recceRankCounts[rank] = (recceRankCounts[rank] || 0) + 1;
+    const disposition = code(raw[20]),
+      group = groupCodes.includes(disposition as any)
+        ? disposition
+        : disposition
+          ? "OTHER"
+          : "UNSPECIFIED";
+    groupRankCounts[group]![rank] = (groupRankCounts[group]![rank] || 0) + 1;
   }
   const batch = await db.importBatch.findFirst({
     where: {
@@ -206,6 +305,7 @@ export async function dashboardSummary(
   return {
     totalOfficers,
     archivedOfficers,
+    formerOfficers,
     needsVerification,
     recce,
     sourceLinked: seen.size,

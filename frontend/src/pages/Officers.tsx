@@ -249,6 +249,20 @@ export function Officers() {
           >
             <option value="">All record states</option>
             <option value="UNVERIFIED">Needs verification</option>
+            {[
+              "ACTIVE",
+              "SUSPENDED",
+              "TRANSFERRED_OUT",
+              "DECEASED",
+              "RESIGNED",
+              "RETIRED",
+              "STRUCK_OFF_STRENGTH",
+              "DISMISSED",
+            ].map((status) => (
+              <option key={status} value={status}>
+                {status.replaceAll("_", " ")}
+              </option>
+            ))}
           </select>
           {can("fields.rank_history.view") && (
             <select

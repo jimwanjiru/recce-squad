@@ -270,6 +270,14 @@ export function Profile() {
           </div>
         </div>
         <div className="profile-actions">
+          {can("movements.create") &&
+            can("fields.personnel_movements.write") && (
+              <Button asChild variant="outline">
+                <Link to={"/changes?new=1&officerId=" + o.id}>
+                  Record change
+                </Link>
+              </Button>
+            )}
           {!o.deletedAt && can("officers.update") && (
             <Button variant="outline" asChild>
               <Link to={"/officers/" + id + "/edit"}>

@@ -68,6 +68,7 @@ async function main() {
                 rankHistories: true,
                 statusHistories: true,
                 movements: true,
+                changes: true,
                 courses: true,
                 awards: true,
                 disciplinaryRecords: true,

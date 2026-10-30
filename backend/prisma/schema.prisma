@@ -38,6 +38,7 @@ model Officer {
   awards              OfficerAward[]              @relation("OfficerAward_officerId")
   disciplinaryRecords OfficerDisciplinaryRecord[] @relation("OfficerDisciplinaryRecord_officerId")
   examinations        OfficerExamination[]        @relation("OfficerExamination_officerId")
+  changes             OfficerChange[]
   importRows          ImportRow[]                 @relation("ImportRow_officerId")
 }
 
@@ -53,6 +54,7 @@ model OfficerServiceProfile {
 }
 
 model Rank {
+  changeTargets OfficerChange[] @relation("ChangeRank")
   id              String               @id @default(cuid())
   code            String               @unique
   name            String
@@ -127,6 +129,7 @@ model OfficerFinancialDetail {
 }
 
 model Unit {
+  changeTargets OfficerChange[] @relation("ChangeUnit")
   id             String              @id @default(cuid())
   name           String
   code           String              @unique
@@ -140,6 +143,7 @@ model Unit {
 }
 
 model SubUnit {
+  changeTargets OfficerChange[] @relation("ChangeSubUnit")
   id             String              @id @default(cuid())
   unitId         String
   code           String
@@ -222,6 +226,7 @@ model MovementType {
 }
 
 model PersonnelMovement {
+  change OfficerChange?
   id                String                 @id @default(cuid())
   officerId         String
   movementTypeId    String
@@ -367,6 +372,8 @@ model User {
   roles                        UserRole[]              @relation("UserRole_userId")
   auditLogs                    AuditLog[]              @relation("AuditLog_userId")
   imports                      ImportBatch[]           @relation("ImportBatch_uploadedById")
+  recordedChanges              OfficerChange[] @relation("ChangeRecorder")
+  approvedChanges              OfficerChange[] @relation("ChangeApprover")
   sessions                     UserSession[]           @relation("UserSession_userId")
   approvedRetirementRules      RetirementRule[]        @relation("RetirementRule_approver")
   approvedStrengthRules        StrengthInclusionRule[] @relation("StrengthInclusionRule_approver")
@@ -455,6 +462,7 @@ model ImportBatch {
 }
 
 model ImportRow {
+  change OfficerChange?
   id                    String      @id @default(cuid())
   batchId               String
   sheetName             String
@@ -510,4 +518,40 @@ model StrengthInclusionRule {
   updatedAt          DateTime  @updatedAt
 
   @@index([status, deploymentStatus, isActive, effectiveFrom, effectiveTo])
+}
+
+
+model OfficerChange {
+  id String @id @default(cuid())
+  officerId String
+  eventType String @db.VarChar(40)
+  effectiveDate DateTime? @db.Date
+  status String @default("DRAFT") @db.VarChar(24)
+  workbookCells Json
+  revision Int @default(0)
+  sourceImportRowId String? @unique
+  movementId String? @unique
+  amendsId String?
+  targetUnitId String?
+  targetSubUnitId String?
+  targetRankId String?
+  recordedById String
+  approvedById String?
+  approvedAt DateTime?
+  appliedAt DateTime?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  officer Officer @relation(fields:[officerId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  recordedBy User @relation("ChangeRecorder",fields:[recordedById],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  approvedBy User? @relation("ChangeApprover",fields:[approvedById],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  sourceImportRow ImportRow? @relation(fields:[sourceImportRowId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  movement PersonnelMovement? @relation(fields:[movementId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  targetUnit Unit? @relation("ChangeUnit",fields:[targetUnitId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  targetSubUnit SubUnit? @relation("ChangeSubUnit",fields:[targetSubUnitId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  targetRank Rank? @relation("ChangeRank",fields:[targetRankId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  amends OfficerChange? @relation("ChangeAmendment",fields:[amendsId],references:[id],onDelete:Restrict,onUpdate:Restrict)
+  amendments OfficerChange[] @relation("ChangeAmendment")
+  @@index([effectiveDate,status,deletedAt])
+  @@index([officerId,effectiveDate])
 }
