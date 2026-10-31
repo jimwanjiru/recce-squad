@@ -2,6 +2,15 @@ import { workbookValue } from "../lib/workbook-format";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Loading, ErrorNotice } from "./shared";
+export function usePersonnelDetails(id: string) {
+  return useQuery({
+    queryKey: ["personnel-details", id],
+    queryFn: () =>
+      api<{ data: { column: number; label: string; value: string }[] }>(
+        "/officers/" + id + "/personnel-details",
+      ),
+  });
+}
 // The API exposes ordinary, permission-filtered database fields, never import provenance.
 export function WorkbookDetails({
   id,
@@ -10,17 +19,11 @@ export function WorkbookDetails({
   id: string;
   columns?: number[];
 }) {
-  const query = useQuery({
-    queryKey: ["personnel-details", id],
-    queryFn: () =>
-      api<{ data: { column: number; label: string; value: string }[] }>(
-        "/officers/" + id + "/personnel-details",
-      ),
-  });
+  const query = usePersonnelDetails(id);
   if (query.isPending) return <Loading />;
   if (query.error) return <ErrorNotice error={query.error} />;
   return (
-    <dl className="detail-grid">
+    <dl className="detail-grid personnel-fields">
       {query.data.data
         .filter((f) => !columns || columns.includes(f.column))
         .map((field) => (

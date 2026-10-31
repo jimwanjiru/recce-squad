@@ -2419,3 +2419,8 @@ td.mono {
 .changes-table:has(th:nth-child(30)) {
   min-width: 6500px;
 }
+
+.personnel-fields {
+  padding: 27px;
+  margin: 0;
+}

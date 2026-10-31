@@ -1,4 +1,7 @@
-import { WorkbookDetails } from "../components/WorkbookDetails";
+import {
+  WorkbookDetails,
+  usePersonnelDetails,
+} from "../components/WorkbookDetails";
 import { RankBaseline } from "../components/RankBaseline";
 import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
@@ -15,7 +18,7 @@ import {
 import { api, Officer, dateLabel } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
-import { Confirm, Empty, ErrorNotice, Loading } from "../components/shared";
+import { Confirm, ErrorNotice, Loading } from "../components/shared";
 const sourceColumns: Record<string, number[]> = {
   overview: [7, 10, 32, 16],
   service: [11, 13, 22, 23, 31, 33, 34, 38],
@@ -98,6 +101,7 @@ const labels: Record<string, string> = {
 };
 function History({ id, section }: { id: string; section: string }) {
   const { can } = useAuth();
+  const mapped = usePersonnelDetails(id);
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState("");
   const query = useQuery({
@@ -111,6 +115,32 @@ function History({ id, section }: { id: string; section: string }) {
   if (query.error) return <ErrorNotice error={query.error} />;
   const data = query.data.data;
   const rows = Array.isArray(data) ? data : data ? [data] : [];
+  // Suppress duplicate undated fields already displayed in this tab. Keep actual
+  // extra details and all dated histories; approval metadata is never a field.
+  const mappedColumns: Record<string, number> = {
+    dateJoinedUnit: 13,
+    serviceRemarks: 23,
+    educationLevel: 12,
+    kcseGrade: 21,
+  };
+  const visibleRows = rows
+    .map((row) =>
+      Object.fromEntries(
+        Object.entries(row).filter(([key, value]) => {
+          const column = mappedColumns[key];
+          if (!column) return true;
+          const existing = mapped.data?.data.find(
+            (f) => f.column === column,
+          )?.value;
+          return existing === undefined || String(value ?? "") !== existing;
+        }),
+      ),
+    )
+    .filter((row) =>
+      Object.entries(row).some(
+        ([key, value]) => key in labels && value !== null && value !== "",
+      ),
+    );
   return (
     <>
       {notice && (
@@ -118,14 +148,10 @@ function History({ id, section }: { id: string; section: string }) {
           {notice}
         </p>
       )}
-      {rows.length === 0 ? (
-        <Empty
-          title="No entries recorded"
-          description="Entries will appear here when they are recorded."
-        />
-      ) : (
+      {visibleRows.length > 0 && (
         <div className="history-list">
-          {rows.map((row, index) => {
+          <h3>Recorded history</h3>
+          {visibleRows.map((row, index) => {
             const relation = (row.rank ??
               row.subUnit ??
               row.unit ??
@@ -141,7 +167,9 @@ function History({ id, section }: { id: string; section: string }) {
                         row.educationLevel ??
                         row.examName ??
                         row.recordType ??
-                        "Service record",
+                        (section === "education"
+                          ? "Education record"
+                          : "Service record"),
                     )}
                 </h3>
                 <dl className="detail-grid">
@@ -183,29 +211,30 @@ function History({ id, section }: { id: string; section: string }) {
             }
           />
         )}
-      {section !== "service" && (
-        <div className="pagination">
-          <span>Page {page} · Up to 25 entries per page</span>
-          <div>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={rows.length < 25}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
-            </Button>
+      {section !== "service" &&
+        (visibleRows.length > 0 || rows.length >= 25 || page > 1) && (
+          <div className="pagination">
+            <span>Page {page} · Up to 25 entries per page</span>
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={rows.length < 25}
+                onClick={() => setPage(page + 1)}
+              >
+                Next
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </>
   );
 }
@@ -441,19 +470,10 @@ export function Profile() {
             </>
           ) : (
             <>
+              <WorkbookDetails id={id!} columns={sourceColumns[tab]} />
               {tab !== "finance" && (
-                <History key={tab} id={id!} section={tab} />
+                <History key={"history-" + tab} id={id!} section={tab} />
               )}
-              {
-                <div style={{ marginTop: 24 }}>
-                  <h3>Additional details</h3>
-                  <WorkbookDetails
-                    key={tab}
-                    id={id!}
-                    columns={sourceColumns[tab]}
-                  />
-                </div>
-              }
             </>
           )}
         </section>
