@@ -148,3 +148,20 @@ test("typed dates honor the workbook 1904 date system", async () => {
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test("additional meaningful NAMES columns fail explicitly instead of silently losing data", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "recce-extra-column-"));
+  try {
+    const file = path.join(dir, "fictional.xlsx");
+    await fixture(file);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(file);
+    wb.getWorksheet("NAMES").getCell("AM2").value = "Fictional unmapped detail";
+    await wb.xlsx.writeFile(file);
+    await assert.rejects(readWorkbook(file), {
+      message: "UNMAPPED_NAMES_COLUMN",
+    });
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});

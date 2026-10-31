@@ -84,6 +84,17 @@ async function readWorkbook(file) {
         if (cell.numFmt) numberFormats[c] = cell.numFmt;
       });
       raw._numberFormats = numberFormats;
+      if (
+        sheet === names &&
+        Object.keys(raw).some(
+          (c) =>
+            /^\d+$/.test(c) &&
+            Number(c) > 38 &&
+            raw[c] != null &&
+            raw[c] !== "",
+        )
+      )
+        throw new Error("UNMAPPED_NAMES_COLUMN");
       const item = {
         sheet: sheet.name,
         row: n,

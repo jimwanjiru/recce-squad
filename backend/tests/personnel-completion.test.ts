@@ -12,6 +12,7 @@ import argon2 from "argon2";
 import request from "supertest";
 import { createDatabase } from "../src/config/database.js";
 import { createApp } from "../src/app.js";
+import { sealSource } from "../src/services/workbook-source.js";
 import { permissions } from "../src/config/permissions.js";
 import { readWorkbook } from "../../tools/workbook-import-data.cjs";
 import { fixture } from "../../tools/workbook-import.test.cjs";
@@ -289,6 +290,98 @@ test("approved personnel completion is atomic, preserves edits, excludes CHANGES
       (await db.officer.findUniqueOrThrow({ where: { id: second.id } }))
         .assignedDuties,
       null,
+    );
+    // Simulate a completed v1 batch with unsupported/missing fields and manual edits.
+    const keyPath = path.join(dir, ".local/workbook-import.key");
+    const keyBefore = await readFile(keyPath);
+    const legacyDetails = {
+      ...(after.personnelData!.details as Record<string, string>),
+    };
+    for (let c = 2; c <= 38; c++)
+      if (![16, 36, 37].includes(c))
+        assert(
+          Object.hasOwn(legacyDetails, String(c)),
+          `Missing mapped column ${c}`,
+        );
+    delete legacyDetails["18"];
+    delete legacyDetails["27"];
+    legacyDetails["17"] = "Manual places served";
+    legacyDetails["23"] = "";
+    await db.officer.update({
+      where: { id: first.id },
+      data: { phone: null, version: { increment: 1 } },
+    });
+    await db.auditLog.create({
+      data: {
+        userId: actorId,
+        entityType: "Officer",
+        entityId: first.id,
+        action: "OFFICER_UPDATED",
+        changedFields: ["phone"],
+      },
+    });
+    await db.officerPersonnelData.update({
+      where: { officerId: first.id },
+      data: {
+        mappingVersion: 1,
+        details: legacyDetails,
+        encryptedFinance: sealSource(
+          { 36: "FICTIONAL-ACCOUNT-SECRET" },
+          keyBefore,
+          `personnel:${first.id}:finance`,
+        ),
+      },
+    });
+    const upgradePreview = run("tools/complete-personnel-import.ts", args);
+    assert.equal(upgradePreview.status, 0, upgradePreview.stderr);
+    assert(upgradePreview.stdout.includes('"upgraded": 1'));
+    assert(upgradePreview.stdout.includes('"fieldsAdded": 3'));
+    assert.equal(
+      (
+        await db.officerPersonnelData.findUniqueOrThrow({
+          where: { officerId: first.id },
+        })
+      ).mappingVersion,
+      1,
+    );
+    const upgradeTrigger =
+      "upgrade_failure_" + randomUUID().replaceAll("-", "");
+    await db.$executeRawUnsafe(
+      `CREATE TRIGGER \`${upgradeTrigger}\` BEFORE INSERT ON AuditLog FOR EACH ROW BEGIN IF NEW.action='PERSONNEL_DETAILS_UPGRADED' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fictional upgrade failure'; END IF; END`,
+    );
+    try {
+      assert.equal(
+        run("tools/complete-personnel-import.ts", commitArgs).status,
+        1,
+      );
+      const unchanged = await db.officerPersonnelData.findUniqueOrThrow({
+        where: { officerId: first.id },
+      });
+      assert.equal(unchanged.mappingVersion, 1);
+      assert(!Object.hasOwn(unchanged.details as object, "18"));
+    } finally {
+      await db.$executeRawUnsafe(`DROP TRIGGER \`${upgradeTrigger}\``);
+    }
+    const upgrade = run("tools/complete-personnel-import.ts", commitArgs);
+    assert.equal(upgrade.status, 0, upgrade.stderr);
+    const upgraded = await db.officerPersonnelData.findUniqueOrThrow({
+      where: { officerId: first.id },
+    });
+    assert.equal(upgraded.mappingVersion, 2);
+    assert.equal((upgraded.details as any)["18"], "Fictional course");
+    assert.equal((upgraded.details as any)["17"], "Manual places served");
+    assert.equal((upgraded.details as any)["23"], "");
+    assert.equal((upgraded.details as any)["27"], "");
+    assert.deepEqual(await readFile(keyPath), keyBefore);
+    const repeatUpgrade = run("tools/complete-personnel-import.ts", commitArgs);
+    assert.equal(repeatUpgrade.status, 0, repeatUpgrade.stderr);
+    assert(repeatUpgrade.stdout.includes('"fieldsAdded": 0'));
+    assert(repeatUpgrade.stdout.includes('"upgraded": 0'));
+    assert.deepEqual(
+      await db.officerPersonnelData.findUnique({
+        where: { officerId: first.id },
+      }),
+      upgraded,
     );
     assert.equal(
       await db.auditLog.count({

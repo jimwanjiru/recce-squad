@@ -37,6 +37,7 @@ export function personnelCell(
     );
   return sourceText(value);
 }
+export const personnelMappingVersion = 2;
 export async function completePersonnelImport(
   tx: Prisma.TransactionClient,
   input: {
@@ -108,7 +109,9 @@ export async function completePersonnelImport(
   );
   if (key.length !== 32) throw Error("INVALID_IMPORT_ENCRYPTION_KEY");
   let added = 0,
-    preserved = 0;
+    preserved = 0,
+    upgraded = 0,
+    fieldsAdded = 0;
   for (const row of candidates) {
     const saved = byRow.get(row.row);
     if (!saved?.officer) throw Error("IMPORT_OFFICER_LINK_MISSING");
@@ -123,25 +126,44 @@ export async function completePersonnelImport(
       `${batch.fileSha256}:NAMES:${row.row}`,
     );
     checkSourceOfficer(original, saved.officer);
+    const existing = await tx.officerPersonnelData.findUnique({
+      where: { officerId: saved.officer.id },
+    });
+    if (existing && existing.mappingVersion > personnelMappingVersion)
+      throw Error("UNSUPPORTED_PERSONNEL_MAPPING_VERSION");
+    if (existing && existing.sourceRowId !== saved.id)
+      throw Error("PERSONNEL_SOURCE_LINK_MISMATCH");
+    const details = {
+      ...((existing?.details || {}) as Record<string, string>),
+    };
+    const finance = existing
+      ? ((await openSource(
+          existing.encryptedFinance,
+          `personnel:${saved.officer.id}:finance`,
+        )) as Record<string, string>)
+      : {};
+    let missing = 0;
+    for (let c = 2; c <= 38; c++) {
+      if (c === 16) continue; // The editable scalar was populated once by mapping v1.
+      const target = c === 36 || c === 37 ? finance : details;
+      // An existing empty string or null is an intentional value, never a gap.
+      if (!Object.prototype.hasOwnProperty.call(target, String(c))) {
+        target[String(c)] = personnelCell(row.raw, c);
+        missing++;
+      }
+    }
     if (
-      await tx.officerPersonnelData.findUnique({
-        where: { officerId: saved.officer.id },
-      })
+      existing &&
+      !missing &&
+      existing.mappingVersion >= personnelMappingVersion
     ) {
       preserved++;
       continue;
     }
-    added++;
+    fieldsAdded += missing;
+    if (existing) upgraded++;
+    else added++;
     if (!input.commit) continue;
-    const details: Record<string, string> = {},
-      finance: Record<string, string> = {};
-    for (let c = 2; c <= 38; c++) {
-      if (c === 16) continue; // duties have their own editable officer field
-      (c === 36 || c === 37 ? finance : details)[String(c)] = personnelCell(
-        row.raw,
-        c,
-      );
-    }
     const manualEdits = await tx.auditLog.findMany({
       where: {
         entityType: "Officer",
@@ -173,26 +195,62 @@ export async function completePersonnelImport(
         details[String(column)] =
           v instanceof Date ? v.toISOString() : String(v ?? "");
       }
-    await tx.officerPersonnelData.create({
-      data: {
-        officerId: saved.officer.id,
-        sourceRowId: saved.id,
-        details,
-        encryptedFinance: seal(
-          finance,
-          key,
-          `personnel:${saved.officer.id}:finance`,
-        ),
-      },
-    });
+    if (editedFields.has("serviceProfile")) {
+      const profile = await tx.officerServiceProfile.findUnique({
+        where: { officerId: saved.officer.id },
+      });
+      details["13"] = profile?.dateJoinedUnit?.toISOString() || "";
+      details["23"] = profile?.serviceRemarks || "";
+    }
+    for (const [field, column, model] of [
+      ["countyId", "10", "county"],
+      ["ethnicityId", "7", "ethnicity"],
+    ] as const) {
+      if (editedFields.has(field)) {
+        const id = saved.officer[field];
+        const record = id
+          ? model === "county"
+            ? await tx.county.findUnique({ where: { id } })
+            : await tx.ethnicity.findUnique({ where: { id } })
+          : null;
+        details[column] = record?.name || "";
+      }
+    }
+    const payload = {
+      details,
+      encryptedFinance: seal(
+        finance,
+        key,
+        `personnel:${saved.officer.id}:finance`,
+      ),
+      mappingVersion: personnelMappingVersion,
+    };
+    if (existing)
+      await tx.officerPersonnelData.update({
+        where: { officerId: saved.officer.id },
+        data: payload,
+      });
+    else
+      await tx.officerPersonnelData.create({
+        data: {
+          officerId: saved.officer.id,
+          sourceRowId: saved.id,
+          ...payload,
+        },
+      });
     const changes: Prisma.OfficerUncheckedUpdateInput = {};
     // Atomic fill-once: a previously edited or cleared field is never replaced on rerun.
     const current = await tx.officer.findUniqueOrThrow({
       where: { id: saved.officer.id },
     });
-    if (current.assignedDuties === null && !editedFields.has("assignedDuties"))
+    if (
+      !existing &&
+      current.assignedDuties === null &&
+      !editedFields.has("assignedDuties")
+    )
       changes.assignedDuties = personnelCell(row.raw, 16) || null;
     if (
+      !existing &&
       !current.ethnicityId &&
       !editedFields.has("ethnicityId") &&
       details["7"]
@@ -204,7 +262,12 @@ export async function completePersonnelImport(
       });
       changes.ethnicityId = ethnicity.id;
     }
-    if (!current.countyId && !editedFields.has("countyId") && details["10"]) {
+    if (
+      !existing &&
+      !current.countyId &&
+      !editedFields.has("countyId") &&
+      details["10"]
+    ) {
       const county = await tx.county.upsert({
         where: { name: details["10"] },
         create: { name: details["10"] },
@@ -219,7 +282,9 @@ export async function completePersonnelImport(
     await tx.auditLog.create({
       data: {
         userId: actor.id,
-        action: "PERSONNEL_DETAILS_COMPLETED",
+        action: existing
+          ? "PERSONNEL_DETAILS_UPGRADED"
+          : "PERSONNEL_DETAILS_COMPLETED",
         entityType: "Officer",
         entityId: current.id,
         changedFields: ["personnelData", ...Object.keys(changes)],
@@ -287,6 +352,9 @@ export async function completePersonnelImport(
     officers: candidates.length,
     added,
     preserved,
+    upgraded,
+    fieldsAdded,
+    mappingVersion: personnelMappingVersion,
     summaryAdded,
     changesImported: 0,
     commit: input.commit,

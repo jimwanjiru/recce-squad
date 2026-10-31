@@ -588,6 +588,7 @@ model OfficerChange {
 
 // Undated personnel facts: never manufacture a dated assignment, rank or change.
 model OfficerPersonnelData {
+  mappingVersion Int @default(1)
   officerId String @id
   sourceRowId String @unique
   details Json
