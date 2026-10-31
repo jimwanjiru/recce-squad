@@ -1,3 +1,4 @@
+import { PersonnelSummaries } from "../components/PersonnelSummaries";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Pagination } from "../components/Pagination";
@@ -104,13 +105,13 @@ function Analytics({ data }: { data: Summary }) {
             <p className="eyebrow">GROUP DISTRIBUTION</p>
             <h2>Where officers are placed</h2>
           </div>
-          <span className="analytics-badge">Workbook source</span>
+          <span className="analytics-badge">Personnel records</span>
         </div>
         <div className="distribution-body">
           <div
             className="distribution-donut"
             role="img"
-            aria-label={`Group distribution: ${data.sourceLinked} workbook-covered officers`}
+            aria-label={`Group distribution: ${data.sourceLinked} officers`}
             style={{
               background: data.sourceLinked
                 ? `conic-gradient(${stops.join(",")})`
@@ -125,7 +126,7 @@ function Analytics({ data }: { data: Summary }) {
                   {data.sourceLinked
                     ? ((100 * value) / data.sourceLinked).toFixed(1)
                     : "0"}
-                  % of source
+                  % of register
                 </small>
               )}
             </div>
@@ -245,7 +246,7 @@ function Analytics({ data }: { data: Summary }) {
         </Link>
         <p className="analytics-chart-note">
           Percentages are shares of the selected group. Ranks follow the
-          workbook; RECCE membership overlaps the placement groups.
+          register; RECCE membership overlaps the placement groups.
         </p>
       </section>
     </div>
@@ -296,7 +297,7 @@ export function Dashboard() {
         <div>
           <p className="eyebrow">PERSONNEL OVERVIEW</p>
           <h1>Dashboard</h1>
-          <p>Personnel analytics · groups, ranks and workbook reconciliation</p>
+          <p>Personnel analytics · groups, ranks and strength comparisons</p>
         </div>
         <Button
           variant="outline"
@@ -317,7 +318,7 @@ export function Dashboard() {
           {
             label: "RECCE",
             value: d.recce,
-            note: "Officers marked R in the workbook",
+            note: "Recce membership",
             Icon: ShieldCheck,
           },
           {
@@ -333,7 +334,7 @@ export function Dashboard() {
           {
             label: "Not assigned / Not applicable",
             value: d.groups.find((group) => group.code === "NA")?.count || 0,
-            note: "Officers marked NA in the workbook",
+            note: "Not assigned / Not applicable",
             Icon: ShieldCheck,
           },
         ].map(({ label, value, note, Icon }) => (
@@ -348,10 +349,9 @@ export function Dashboard() {
         ))}
       </div>
       <div className="notice" role="note">
-        Counts include unverified register records. Team placement uses verified
-        assignments first, then workbook disposition; RECCE membership overlaps
-        these groups and should not be added to them. These are register/source
-        counts, not approved operational strength.
+        Team placement uses current assignments and recorded dispositions. RECCE
+        membership overlaps these groups and should not be added to them. These
+        are register counts, not approved operational strength.
       </div>
       <div
         className="analytics-view-tabs"
@@ -361,7 +361,7 @@ export function Dashboard() {
         {[
           ["overview", "Overview"],
           ["strength", "Strength analysis"],
-          ["comparison", "Workbook comparison"],
+          ["comparison", "Strength comparison"],
         ].map(([key, label]) => (
           <button
             role="tab"
@@ -412,8 +412,8 @@ export function Dashboard() {
             </div>
             <div className="dashboard-notes">
               Ranks follow your confirmed order, from S/AIG to PC. The table
-              counts original workbook ranks; it does not infer rank from force
-              number. RECCE is a membership summary and overlaps the group rows.
+              counts recorded ranks; it does not infer rank from force number.
+              RECCE is a membership summary and overlaps the group rows.
             </div>
             <div className="table-scroll">
               <table
@@ -484,10 +484,10 @@ export function Dashboard() {
               <h2>Rank strength and establishment comparison</h2>
             </div>
             <div className="dashboard-notes">
-              Source establishment is the workbook's input for that rank,
-              awaiting verification. A positive gap means fewer officers than
-              the source establishment; a negative gap means more. Missing or
-              erroneous cached values remain unavailable.
+              Recorded establishment is retained for comparison. A positive gap
+              means fewer officers than the recorded establishment; a negative
+              gap means more. Missing or erroneous cached values remain
+              unavailable.
             </div>
             <div className="table-scroll">
               <table aria-label="Rank strength and establishment comparison">
@@ -496,9 +496,9 @@ export function Dashboard() {
                     <th scope="col">Police rank</th>
                     <th scope="col">Register count</th>
                     <th scope="col">RECCE</th>
-                    <th scope="col">Workbook current strength</th>
-                    <th scope="col">Source establishment</th>
-                    <th scope="col">Gap to source establishment</th>
+                    <th scope="col">Historical strength</th>
+                    <th scope="col">Recorded establishment</th>
+                    <th scope="col">Gap to recorded establishment</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -551,32 +551,28 @@ export function Dashboard() {
         <>
           <section className="card">
             <div className="panel-title">
-              <h2>SUB UNIT STRENGTH comparison</h2>
+              <h2>Sub-unit strength comparison</h2>
             </div>
             <div className="dashboard-notes">
               <p>
-                Group categories follow SUB UNIT STRENGTH. Register counts are
-                recalculated from linked NAMES rows. Workbook values below are
-                cached source totals; external references and formula errors can
-                make them incomplete.
+                Register counts are calculated from current database records.
+                Historical comparison values are retained separately;
+                unavailable totals are shown explicitly.
               </p>
               {d.workbook ? (
                 <p>
-                  Workbook imported {dateLabel(d.workbook.importedAt)} · cached
-                  total:{" "}
+                  Comparison recorded {dateLabel(d.workbook.importedAt)} ·
+                  historical total:{" "}
                   {d.workbook.total === null
                     ? "Unavailable"
                     : number(d.workbook.total)}{" "}
-                  · cached RECCE:{" "}
+                  · historical RECCE:{" "}
                   {d.workbook.recce === null
                     ? "Unavailable"
                     : number(d.workbook.recce)}
                 </p>
               ) : (
-                <p>
-                  No imported SUB UNIT STRENGTH sheet is available yet. Import
-                  your workbook to populate its comparison values.
-                </p>
+                <p>No historical strength comparison has been recorded yet.</p>
               )}
             </div>
             <div className="table-scroll">
@@ -585,7 +581,7 @@ export function Dashboard() {
                   <tr>
                     <th>Group</th>
                     <th>Register count</th>
-                    <th>Workbook cached total</th>
+                    <th>Historical total</th>
                     <th>Comparison</th>
                   </tr>
                 </thead>
@@ -606,12 +602,12 @@ export function Dashboard() {
                         </td>
                         <td>
                           {!group.inStrengthSheet
-                            ? "Not listed in sheet"
+                            ? "Not listed in comparison"
                             : group.workbookCached === null
-                              ? "Source total unavailable"
+                              ? "Historical total unavailable"
                               : group.workbookCached === group.count
-                                ? "Matches source snapshot"
-                                : "Different from source snapshot"}
+                                ? "Matches historical comparison"
+                                : "Different from historical comparison"}
                         </td>
                       </tr>
                     ))}
@@ -627,17 +623,15 @@ export function Dashboard() {
                 setWorkbookSize(size);
                 setWorkbookPage(1);
               }}
-              label="Workbook comparison pagination"
+              label="Strength comparison pagination"
             />
           </section>
         </>
       )}
+      {view === "comparison" && <PersonnelSummaries />}
       <p className="dashboard-footnote">
-        {number(d.needsVerification)} awaiting verification ·{" "}
         {number(d.formerOfficers)} recorded service exits ·{" "}
-        {number(d.archivedOfficers)} archived · {number(d.withoutSource)}{" "}
-        without current or source coverage · {number(d.identityMismatches)}{" "}
-        source identity mismatches. Counts refreshed on{" "}
+        {number(d.archivedOfficers)} archived. Counts refreshed on{" "}
         {dateLabel(d.generatedAt)}. Status-based nominal and operational
         strength rules remain separate.
       </p>

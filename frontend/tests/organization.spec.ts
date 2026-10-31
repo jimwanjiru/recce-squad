@@ -128,7 +128,7 @@ test("manage organization references, baseline assignment, deployment and dated 
     }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Assignments", exact: true }).click();
-  await page.getByRole("button", { name: "Add verified baseline" }).click();
+  await page.getByRole("button", { name: "Add baseline" }).click();
   await page.getByLabel("Find officer by name or force number").fill(tag);
   await page
     .getByLabel(/^Officer(?: \*)?$/)
@@ -140,7 +140,7 @@ test("manage organization references, baseline assignment, deployment and dated 
     .getByLabel(/^Sub-unit(?: \*)?$/)
     .fill("FICTIONAL-SUB · Fictional Browser Sub-unit");
   await page
-    .getByLabel("Verified effective date", { exact: false })
+    .getByRole("textbox", { name: /^Effective date/ })
     .fill("2025-01-01");
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Save record" }).click();
@@ -162,10 +162,10 @@ test("manage organization references, baseline assignment, deployment and dated 
     .getByLabel("Reviewed deployment classification", { exact: false })
     .fill("FICTIONAL_IN_CAMP");
   await page
-    .getByLabel("Verified effective date", { exact: false })
+    .getByRole("textbox", { name: /^Effective date/ })
     .fill("2025-01-01");
   await page
-    .getByLabel("Verified end date", { exact: false })
+    .getByLabel("End date", { exact: false })
     .fill("2025-06-01");
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Save record" }).click();
@@ -191,10 +191,10 @@ test("manage organization references, baseline assignment, deployment and dated 
     .getByLabel("Approved authorized strength", { exact: false })
     .fill("12");
   await page
-    .getByLabel("Verified effective date", { exact: false })
+    .getByRole("textbox", { name: /^Effective date/ })
     .fill("2025-01-01");
   await page
-    .getByLabel("Verified end date", { exact: false })
+    .getByLabel("End date", { exact: false })
     .fill("2026-01-01");
   await page.getByRole("checkbox").nth(0).check();
   await page.getByRole("checkbox").nth(1).check();

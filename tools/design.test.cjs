@@ -39,7 +39,7 @@ test("analysis excludes formatted rows, detects duplicate/missing identifiers an
 test("schema includes all proposed entities, restricted relations and integrity keys", async () => {
   const d = await validate();
   const models = d.datamodel.models;
-  assert.equal(models.length, 38);
+  assert.equal(models.length, 40);
   const officer = models.find((m) => m.name === "Officer");
   assert(officer.fields.find((f) => f.name === "forceNumber").isUnique);
   assert.equal(

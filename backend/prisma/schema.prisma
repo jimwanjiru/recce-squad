@@ -9,6 +9,8 @@ datasource db {
 }
 
 model Officer {
+  assignedDuties String? @db.Text
+  personnelData OfficerPersonnelData?
   rankSnapshot        OfficerRankSnapshot?
   id                  String                      @id @default(cuid())
   forceNumber         String                      @unique @db.VarChar(64)
@@ -454,6 +456,7 @@ model RetirementRule {
 }
 
 model ImportBatch {
+  summaryRecords PersonnelSummaryRecord[]
   id           String      @id @default(cuid())
   filename     String
   fileSha256   String
@@ -470,6 +473,7 @@ model ImportBatch {
 }
 
 model ImportRow {
+  personnelData OfficerPersonnelData?
   rankSnapshot OfficerRankSnapshot?
   change OfficerChange?
   id                    String      @id @default(cuid())
@@ -580,4 +584,27 @@ model OfficerChange {
   amendments OfficerChange[] @relation("ChangeAmendment")
   @@index([effectiveDate,status,deletedAt])
   @@index([officerId,effectiveDate])
+}
+
+// Undated personnel facts: never manufacture a dated assignment, rank or change.
+model OfficerPersonnelData {
+  officerId String @id
+  sourceRowId String @unique
+  details Json
+  encryptedFinance Json
+  createdAt DateTime @default(now())
+  officer Officer @relation(fields: [officerId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceRow ImportRow @relation(fields: [sourceRowId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+}
+
+// Frozen comparisons and accompanying information; never operational policy.
+model PersonnelSummaryRecord {
+  id String @id @default(cuid())
+  batchId String
+  section String
+  position Int
+  cells Json
+  createdAt DateTime @default(now())
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([batchId, section, position])
 }

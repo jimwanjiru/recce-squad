@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { createDecipheriv } from "node:crypto";
+import { createDecipheriv, createCipheriv, randomBytes } from "node:crypto";
 import { HttpError } from "./errors.js";
 export const workbookColumns: [string, string?][] = [
   ["Source serial"],
@@ -17,13 +17,13 @@ export const workbookColumns: [string, string?][] = [
   ["Date to unit", "service_profile"],
   ["Date to sub-unit", "assignments"],
   ["Promotion date", "rank_history"],
-  ["Duties", "assignments"],
+  ["Assigned duties", "assignments"],
   ["Places served", "assignments"],
   ["Courses", "courses"],
   ["Formation", "assignments"],
   ["Disposition", "assignments"],
   ["KCSE grade", "education"],
-  ["Source membership flag", "service_profile"],
+  ["Unit membership", "service_profile"],
   ["Remarks", "service_profile"],
   ["National ID", "national_id"],
   ["Police law examination", "examinations"],
@@ -102,4 +102,21 @@ export function checkSourceOfficer(
     force = force.padStart(format.length, "0");
   if (force !== officer.forceNumber)
     throw new HttpError(409, "WORKBOOK_OFFICER_IDENTITY_MISMATCH");
+}
+
+export function sealSource(raw: unknown, key: Buffer, context: string) {
+  const iv = randomBytes(12),
+    cipher = createCipheriv("aes-256-gcm", key, iv);
+  cipher.setAAD(Buffer.from(context));
+  const ciphertext = Buffer.concat([
+    cipher.update(JSON.stringify(raw), "utf8"),
+    cipher.final(),
+  ]);
+  return {
+    format: "AES-256-GCM",
+    keyVersion: "local-workbook-v1",
+    iv: iv.toString("base64"),
+    tag: cipher.getAuthTag().toString("base64"),
+    ciphertext: ciphertext.toString("base64"),
+  };
 }

@@ -57,6 +57,14 @@ export const officerFields = {
   countyId: nullableText(),
   ethnicityId: nullableText(),
   phone: nullableText(255),
+  assignedDuties: z
+    .string()
+    .max(65535)
+    .refine(
+      (v) => Buffer.byteLength(v, "utf8") <= 65535,
+      "Assigned duties is too long",
+    )
+    .nullable(),
   dateEnlisted: date.nullable(),
 };
 export const createOfficer = z
@@ -75,6 +83,7 @@ export const createOfficer = z
     countyId: true,
     ethnicityId: true,
     phone: true,
+    assignedDuties: true,
     dateEnlisted: true,
   })
   .strict();

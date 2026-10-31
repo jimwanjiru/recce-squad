@@ -60,6 +60,7 @@ async function readWorkbook(file) {
     [6, "FULL NAMES"],
     [8, "FULL DATE OF BIRTH"],
     [11, "DATE OF ENLIST"],
+    [16, "DUTIES"],
     [24, "ID. NO"],
     [27, "PHONE NO."],
   ])
@@ -71,7 +72,10 @@ async function readWorkbook(file) {
       throw new Error("WORKBOOK_LAYOUT_CHANGED");
   const rows = [],
     keys = new Map();
-  for (const sheet of wb.worksheets)
+  const selected = wb.worksheets.filter((s) =>
+    ["NAMES", "TRIBE", "SUB UNIT STRENGTH"].includes(s.name.trim()),
+  );
+  for (const sheet of selected)
     sheet.eachRow((row, n) => {
       const raw = {};
       const numberFormats = {};
@@ -197,7 +201,7 @@ async function readWorkbook(file) {
       eligibleOfficers: candidates.filter((r) => r.candidate.eligible).length,
       heldOfficers: candidates.filter((r) => !r.candidate.eligible).length,
       rowsWithReviewFlags: candidates.filter((r) => r.errors.length).length,
-      sheets: wb.worksheets.map((s) => s.name.trim()),
+      sheets: selected.map((s) => s.name.trim()),
     },
   };
 }

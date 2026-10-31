@@ -1,10 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { businessDate } from "./history.js";
-import {
-  checkSourceOfficer,
-  openSource,
-  sourceText,
-} from "./workbook-source.js";
+import { sourceText } from "./workbook-source.js";
 
 // Display order only; changing this list never rewrites rank histories or source cells.
 export const currentPoliceRanks = [
@@ -118,45 +114,6 @@ export async function officerRanks(
           snapshot.officer.verificationStatus === "VERIFIED"
             ? "VERIFIED_IMPORT"
             : "DATABASE",
-      });
-    }
-    if (!allowSource) continue;
-    const pending = chunk.filter((o) => !verifiedIds.has(o.id));
-    if (!pending.length) continue;
-    const sources = await db.importRow.findMany({
-      where: {
-        officerId: { in: pending.map((o) => o.id) },
-        sheetName: "NAMES",
-        batch: { status: { not: "ROLLED_BACK" } },
-      },
-      select: {
-        id: true,
-        officerId: true,
-        rawData: true,
-        rowNumber: true,
-        batch: { select: { fileSha256: true } },
-      },
-      orderBy: [{ batch: { createdAt: "desc" } }, { id: "desc" }],
-    });
-    const identities = new Map(pending.map((o) => [o.id, o]));
-    const seen = new Set<string>();
-    for (const row of sources) {
-      if (!row.officerId || seen.has(row.officerId)) continue;
-      const raw = await openSource(
-        row.rawData,
-        `${row.batch.fileSha256}:NAMES:${row.rowNumber}`,
-      );
-      const officer = identities.get(row.officerId)!;
-      try {
-        checkSourceOfficer(raw, officer);
-      } catch {
-        continue;
-      }
-      seen.add(row.officerId);
-      result.set(row.officerId, {
-        rank1: sourceText(raw["4"]),
-        rank2: overallRank(raw["5"]),
-        rankSource: "WORKBOOK",
       });
     }
   }

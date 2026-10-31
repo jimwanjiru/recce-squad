@@ -64,10 +64,7 @@ export function GroupRosters() {
         <div>
           <p className="eyebrow">GROUPS & PERSONNEL</p>
           <h1>Organization</h1>
-          <p className="muted">
-            Browse sub-units and their officers. Verified current records take
-            precedence over workbook values.
-          </p>
+          <p className="muted">Browse sub-units and their officers.</p>
         </div>
       </div>
       <div className="roster-group-strip" aria-label="Officer groups">
@@ -86,9 +83,7 @@ export function GroupRosters() {
         <div className="panel-title">
           <div>
             <h2>{selected?.label || "Officer roster"}</h2>
-            <p className="muted">
-              Current placements, with workbook values awaiting verification
-            </p>
+            <p className="muted">Current personnel placements</p>
           </div>
           <Users size={20} />
         </div>
@@ -140,8 +135,7 @@ export function GroupRosters() {
                     <th>Officer</th>
                     <th>Rank 1 · rank / specialization</th>
                     <th>Rank 2 · overall rank</th>
-                    <th>Current / source sub-unit</th>
-                    <th>Verified record</th>
+                    <th>Sub-unit</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -176,22 +170,6 @@ export function GroupRosters() {
                           (g) => g.code === officer.group,
                         )?.label || officer.group}
                       </td>
-                      <td>
-                        {officer.verifiedGroup || officer.verifiedRank ? (
-                          <>
-                            <span>
-                              {officer.verifiedGroup || "No verified group"}
-                            </span>
-                            <small className="roster-source-label">
-                              Rank: {officer.verifiedRank || "Not verified"}
-                            </small>
-                          </>
-                        ) : (
-                          <span className="roster-pending">
-                            Awaiting verification
-                          </span>
-                        )}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -214,11 +192,7 @@ export function GroupRosters() {
         )}
       </section>
       <p className="dashboard-footnote">
-        Verified current placements are used first, with workbook values as a
-        fallback. RECCE membership overlaps the other groups. Verified current
-        assignments and ranks, when available, appear separately.{" "}
-        {result.data?.meta.identityMismatches || 0} source identity mismatches
-        are excluded.
+        RECCE membership overlaps the placement groups.
       </p>
     </div>
   );

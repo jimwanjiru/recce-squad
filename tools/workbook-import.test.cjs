@@ -16,6 +16,7 @@ async function fixture(file) {
     [6, "FULL NAMES"],
     [8, "FULL DATE OF BIRTH"],
     [11, "DATE OF ENLIST"],
+    [16, "DUTIES"],
     [24, "ID. NO"],
     [27, "PHONE NO."],
   ])
@@ -80,6 +81,8 @@ test("workbook preview preserves source, holds partial dates and duplicates, and
     await fixture(file);
     const result = await readWorkbook(file);
     assert.equal(result.summary.candidateOfficers, 6);
+    assert(!result.rows.some((r) => r.sheet.trim() === "CHANGES"));
+    assert(!result.summary.sheets.includes("CHANGES"));
     assert.equal(result.summary.eligibleOfficers, 3);
     assert.equal(result.summary.heldOfficers, 3);
     const a = result.rows.find((r) => r.row === 2 && r.sheet === "NAMES");

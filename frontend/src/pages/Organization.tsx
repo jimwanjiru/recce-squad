@@ -263,14 +263,14 @@ function OrganizationManagement() {
           <p className="eyebrow">ORGANIZATION & STRUCTURE</p>
           <h1>Organization</h1>
           <p className="muted">
-            Maintain reference values and verified organizational records.
+            Maintain reference values and organizational records.
           </p>
         </div>
         {canWrite && (
           <Button onClick={() => setForm({ mode: "create" })}>
             <Plus size={17} />
             {kind === "assignments"
-              ? "Add verified baseline"
+              ? "Add baseline"
               : kind === "establishments"
                 ? "Record approved establishment"
                 : `Add ${kind === "sub-units" ? "sub-unit" : kind === "ranks" ? "rank" : kind === "units" ? "unit" : "deployment"}`}
@@ -294,11 +294,11 @@ function OrganizationManagement() {
           <strong>Keep structure and service history consistent</strong>
           <p>
             {kind === "assignments"
-              ? "Only an officer’s first verified assignment can be added here. Later changes belong to the personnel movement approval workflow."
+              ? "Only an officer’s first assignment can be added here. Later changes belong to the personnel movement approval workflow."
               : kind === "establishments"
                 ? "Record only staffing establishments already approved by the responsible authority. These values do not activate strength or promotion policies."
                 : kind === "deployments"
-                  ? "Deployment classifications do not determine nominal or operational inclusion. Record source-verified dates and classifications."
+                  ? "Deployment classifications do not determine nominal or operational inclusion. Record confirmed dates and classifications."
                   : "Enter reviewed codes and names. Deactivation stops new selections while preserving historical references."}
           </p>
         </div>
@@ -382,7 +382,7 @@ function OrganizationManagement() {
             title="No matching organization records"
             description={
               dated
-                ? "Verified records will appear here for the selected reporting date."
+                ? "Records will appear here for the selected reporting date."
                 : "Add reviewed reference values when your organization confirms them."
             }
           />
@@ -734,7 +734,7 @@ function OrganizationForm({
         path += `/${row!.id}/aliases`;
       } else if (mode === "close") {
         if (!verified)
-          throw Error("Confirm that the interval end date is verified.");
+          throw Error("Confirm that the interval end date is confirmed.");
         body = {
           effectiveTo: fields.effectiveTo,
           expectedVerifiedAt: row!.datesVerifiedAt,
@@ -774,7 +774,7 @@ function OrganizationForm({
           });
       } else {
         if (!verified)
-          throw Error("Confirm that the source effective dates are verified.");
+          throw Error("Confirm that the effective dates are confirmed.");
         body = {
           effectiveFrom: fields.effectiveFrom,
           effectiveTo: fields.effectiveTo || null,
@@ -841,20 +841,20 @@ function OrganizationForm({
             {mode === "alias"
               ? "Add original rank spelling"
               : mode === "close"
-                ? "Close verified interval"
+                ? "Close interval"
                 : mode === "edit"
                   ? "Edit organization reference"
                   : kind === "establishments"
                     ? "Record approved establishment"
                     : kind === "assignments"
-                      ? "Add verified assignment baseline"
+                      ? "Add assignment baseline"
                       : "Add organization record"}
           </AlertDialog.Title>
           <AlertDialog.Description>
             {mode === "close"
-              ? "Only the verified interval end is recorded. The original dates and details remain unchanged."
+              ? "Only the interval end is recorded. The original dates and details remain unchanged."
               : kind === "assignments"
-                ? "This is for an officer’s first verified assignment. Later changes require the personnel movement workflow."
+                ? "This is for an officer’s first assignment. Later changes require the personnel movement workflow."
                 : kind === "establishments"
                   ? "Record an establishment already approved by the responsible authority. No strength-inclusion rule is activated."
                   : "Enter reviewed reference values and preserve their original meaning."}
@@ -869,7 +869,7 @@ function OrganizationForm({
               {mode === "alias" ? (
                 field("alias", "Original rank spelling")
               ) : mode === "close" ? (
-                field("effectiveTo", "Verified end date", "date")
+                field("effectiveTo", "End date", "date")
               ) : kind === "ranks" ||
                 kind === "units" ||
                 kind === "sub-units" ? (
@@ -956,8 +956,8 @@ function OrganizationForm({
                   )}
                   {kind === "assignments" &&
                     field("dutyTitle", "Duty title", "text", false)}
-                  {field("effectiveFrom", "Verified effective date", "date")}
-                  {field("effectiveTo", "Verified end date", "date", false)}
+                  {field("effectiveFrom", "Effective date", "date")}
+                  {field("effectiveTo", "End date", "date", false)}
                   {kind !== "establishments" &&
                     field("remarks", "Remarks", "text", false)}
                 </>
@@ -975,8 +975,7 @@ function OrganizationForm({
                   onChange={(e) => setVerified(e.target.checked)}
                   required
                 />
-                I have verified these effective dates against an authoritative
-                source.
+                I confirm these effective dates against an authoritative source.
               </label>
             )}
             {mode === "create" && kind === "establishments" && (

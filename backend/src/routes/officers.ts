@@ -62,11 +62,13 @@ async function audit(
 function checkWrites(res: Response, data: Record<string, unknown>) {
   for (const key of Object.keys(data)) {
     const field =
-      key === "initialRank"
-        ? "rankHistories"
-        : key === "initialAssignment"
-          ? "assignments"
-          : (key as keyof typeof sensitiveFields);
+      key === "assignedDuties"
+        ? "assignments"
+        : key === "initialRank"
+          ? "rankHistories"
+          : key === "initialAssignment"
+            ? "assignments"
+            : (key as keyof typeof sensitiveFields);
     if (field in sensitiveFields) need(res, fieldPermission(field, "write"));
   }
 }
@@ -524,6 +526,81 @@ export function officerRoutes(db: PrismaClient) {
     }),
   );
   router.get(
+    "/officers/:id/personnel-details",
+    run(async (req, res) => {
+      need(res, "officers.view");
+      const id = z.string().max(191).parse(req.params.id);
+      const officer = await db.officer.findUnique({
+        where: { id },
+        include: {
+          personnelData: true,
+          county: true,
+          ethnicity: true,
+          serviceProfile: true,
+        },
+      });
+      if (!officer) throw new HttpError(404, "OFFICER_NOT_FOUND");
+      const { canColumn, workbookColumns, openSource } =
+        await import("../services/workbook-source.js");
+      const details = {
+        ...((officer.personnelData?.details || {}) as Record<string, string>),
+      };
+      const current: Record<number, unknown> = {
+        2: officer.forceNumber,
+        3: officer.payrollNumber,
+        6: officer.fullName,
+        7: officer.ethnicity?.name,
+        8: officer.dateOfBirth?.toISOString(),
+        9: officer.gender,
+        10: officer.county?.name,
+        11: officer.dateEnlisted?.toISOString(),
+        13: officer.serviceProfile?.dateJoinedUnit?.toISOString(),
+        16: officer.assignedDuties,
+        23: officer.serviceProfile?.serviceRemarks,
+        24: officer.nationalId,
+        27: officer.phone,
+      };
+      for (const [column, value] of Object.entries(current))
+        if (value != null || column === "16")
+          details[column] = String(value ?? "");
+      if (
+        officer.personnelData &&
+        actor(res).grants.has("fields.financial_details.view")
+      )
+        Object.assign(
+          details,
+          await openSource(
+            officer.personnelData.encryptedFinance,
+            `personnel:${id}:finance`,
+          ),
+        );
+      const ranks = actor(res).grants.has("fields.rank_history.view")
+        ? (await officerRanks(db, [officer], false)).get(id)
+        : null;
+      if (ranks && ranks.rankSource !== "UNRECORDED") {
+        details["4"] = ranks.rank1;
+        details["5"] = ranks.rank2;
+      }
+      const fields = workbookColumns.flatMap(([label], index) => {
+        const column = index + 1;
+        if (column === 1 || !canColumn(actor(res).grants, column, "view"))
+          return [];
+        return [
+          {
+            column,
+            label: label
+              .replace(/^Source /, "Recorded ")
+              .replace("Duties", "Assigned duties")
+              .replace("Source membership flag", "Unit membership"),
+            value: details[String(column)] || "",
+          },
+        ];
+      });
+      res.json({ data: fields });
+    }),
+  );
+
+  router.get(
     "/officers/:id",
     run(async (req, res) => {
       need(res, "officers.view");
@@ -569,6 +646,56 @@ export function officerRoutes(db: PrismaClient) {
             version: { increment: 1 },
           },
         });
+        const personnel = await tx.officerPersonnelData.findUnique({
+          where: { officerId: id },
+        });
+        if (personnel) {
+          const details = { ...(personnel.details as Record<string, string>) };
+          const columns: Record<string, number> = {
+            forceNumber: 2,
+            payrollNumber: 3,
+            fullName: 6,
+            dateOfBirth: 8,
+            gender: 9,
+            dateEnlisted: 11,
+            nationalId: 24,
+            phone: 27,
+            countyId: 10,
+            ethnicityId: 7,
+          };
+          for (const [field, column] of Object.entries(columns))
+            if (field in data) {
+              let value: unknown = data[field as keyof typeof data];
+              if (field === "countyId")
+                value = value
+                  ? (
+                      await tx.county.findUniqueOrThrow({
+                        where: { id: String(value) },
+                      })
+                    ).name
+                  : null;
+              if (field === "ethnicityId")
+                value = value
+                  ? (
+                      await tx.ethnicity.findUniqueOrThrow({
+                        where: { id: String(value) },
+                      })
+                    ).name
+                  : null;
+              details[String(column)] =
+                value instanceof Date
+                  ? value.toISOString()
+                  : String(value ?? "");
+            }
+          if (serviceProfile && "dateJoinedUnit" in serviceProfile)
+            details["13"] = serviceProfile.dateJoinedUnit?.toISOString() || "";
+          if (serviceProfile && "serviceRemarks" in serviceProfile)
+            details["23"] = serviceProfile.serviceRemarks || "";
+          await tx.officerPersonnelData.update({
+            where: { officerId: id },
+            data: { details },
+          });
+        }
         if (serviceProfile)
           await tx.officerServiceProfile.upsert({
             where: { officerId: id },

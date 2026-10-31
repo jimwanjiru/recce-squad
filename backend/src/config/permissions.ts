@@ -89,5 +89,10 @@ export function permittedOfficerSelect(
     )
       select[key] = true;
   }
+  if (
+    grants.has("fields.assignments.view") &&
+    (mode === "view" || grants.has("fields.assignments.export"))
+  )
+    select.assignedDuties = true;
   return select;
 }

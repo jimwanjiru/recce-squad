@@ -4,7 +4,7 @@ export function workbookValue(value: string, column?: number) {
   const code = value.trim().toUpperCase();
   if (column === 20 && code === "MO") return `${value} — Main Office`;
   if (column === 20 && code === "NA")
-    return `${value} — Not assigned / not applicable`;
+    return `${value} — Not assigned / Not applicable`;
   if (column === 22 && code === "R") return `${value} — Recce`;
   if (column !== undefined && !dateColumns.has(column)) return value;
   if (!/^\d{4}-\d{2}-\d{2}(?:T00:00:00(?:\.000)?Z)?$/.test(value)) return value;

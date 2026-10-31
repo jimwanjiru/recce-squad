@@ -39,7 +39,7 @@ export function RankBaseline({ id, saved }: { id: string; saved: () => void }) {
   });
   return (
     <details className="rank-baseline-form">
-      <summary>Verify initial rank</summary>
+      <summary>Record initial rank</summary>
       <p>
         Use this once, when this officer has no existing rank or movement
         history. Confirm the overall rank and its actual effective date against
@@ -60,7 +60,7 @@ export function RankBaseline({ id, saved }: { id: string; saved: () => void }) {
           {!options.data?.data.ranks.length && (
             <p>
               Add the appropriate rank reference in Organization → Ranks before
-              verification.
+              recording it.
             </p>
           )}
           <div className="form-grid">
@@ -83,7 +83,7 @@ export function RankBaseline({ id, saved }: { id: string; saved: () => void }) {
               </select>
             </label>
             <label htmlFor={formId + "-date"}>
-              Verified rank effective date
+              Rank effective date
               <input
                 id={formId + "-date"}
                 type="date"
@@ -140,7 +140,7 @@ export function RankBaseline({ id, saved }: { id: string; saved: () => void }) {
             type="submit"
             disabled={mutation.isPending || !rankId || !date || !confirmed}
           >
-            {mutation.isPending ? "Saving…" : "Save verified initial rank"}
+            {mutation.isPending ? "Saving…" : "Save initial rank"}
           </Button>
         </form>
       )}

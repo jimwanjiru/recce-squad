@@ -11,6 +11,7 @@ import { Button } from "../components/ui/button";
 import { ErrorNotice, Loading, SearchSelect } from "../components/shared";
 const schema = z
   .object({
+    assignedDuties: z.string().max(65535),
     forceNumber: z.string().trim().min(1, "Enter a force number.").max(64),
     fullName: z.string().trim().min(2, "Enter the full name.").max(255),
     payrollNumber: z.string(),
@@ -43,7 +44,7 @@ const schema = z
       ctx.addIssue({
         code: "custom",
         path: ["rankEffectiveFrom"],
-        message: "Provide and confirm the verified rank effective date.",
+        message: "Provide and confirm the rank effective date.",
       });
     if (
       data.unitId &&
@@ -52,11 +53,12 @@ const schema = z
       ctx.addIssue({
         code: "custom",
         path: ["assignmentEffectiveFrom"],
-        message: "Provide and confirm the verified assignment effective date.",
+        message: "Provide and confirm the assignment effective date.",
       });
   });
 type Form = z.infer<typeof schema>;
 const defaults: Form = {
+  assignedDuties: "",
   forceNumber: "",
   fullName: "",
   payrollNumber: "",
@@ -85,6 +87,7 @@ const defaults: Form = {
   institution: "",
 };
 const personalPermissions = {
+  assignedDuties: "assignments",
   payrollNumber: "payroll_number",
   nationalId: "national_id",
   dateOfBirth: "date_of_birth",
@@ -261,7 +264,7 @@ export function OfficerForm() {
           <p className="eyebrow">OFFICER RECORD</p>
           <h1>{edit ? "Edit officer" : "Register an officer"}</h1>
           <p className="muted">
-            Enter verified information. Leave unknown details blank.
+            Enter recorded information. Leave unknown details blank.
           </p>
         </div>
         <span className="badge blue">
@@ -338,6 +341,9 @@ export function OfficerForm() {
               edit ? "/officers/" + id : "/officers",
               { method: edit ? "PATCH" : "POST", body },
             );
+            await cache.invalidateQueries({
+              queryKey: ["personnel-details", result.data.id],
+            });
             await cache.invalidateQueries({ queryKey: ["officers"] });
             await cache.invalidateQueries({
               queryKey: ["officer", result.data.id],
@@ -350,7 +356,7 @@ export function OfficerForm() {
               state: {
                 notice: edit
                   ? "Officer record updated."
-                  : "Officer registered. Personnel status awaits verification.",
+                  : "Officer registered.",
               },
             });
           } catch (error) {
@@ -392,6 +398,20 @@ export function OfficerForm() {
                 </div>
               </div>
               <div className="form-grid">
+                {allowed("assignedDuties") && (
+                  <div className="form-field">
+                    <label htmlFor="assignedDuties">Assigned duties</label>
+                    <textarea
+                      id="assignedDuties"
+                      rows={3}
+                      maxLength={65535}
+                      {...register("assignedDuties")}
+                    />
+                    {errors.assignedDuties && (
+                      <span role="alert">{errors.assignedDuties.message}</span>
+                    )}
+                  </div>
+                )}
                 {allowed("payrollNumber") &&
                   field("payrollNumber", "Payroll number")}
                 {allowed("dateEnlisted") &&
@@ -412,7 +432,7 @@ export function OfficerForm() {
                   <div>
                     <h2>Initial rank & assignment</h2>
                     <p>
-                      Only enter a baseline when its effective date is verified
+                      Only enter a baseline when its effective date is known
                     </p>
                   </div>
                 </div>
@@ -424,7 +444,7 @@ export function OfficerForm() {
                         <>
                           {field(
                             "rankEffectiveFrom",
-                            "Verified rank effective date",
+                            "Rank effective date",
                             "date",
                           )}
                           {field(
@@ -441,7 +461,7 @@ export function OfficerForm() {
                     {watch("rankId") && (
                       <label className="checkbox-label">
                         <input type="checkbox" {...register("rankVerified")} />I
-                        have verified this rank effective date against an
+                        confirm this rank effective date against an
                         authoritative source.
                       </label>
                     )}
@@ -462,7 +482,7 @@ export function OfficerForm() {
                           )}
                           {field(
                             "assignmentEffectiveFrom",
-                            "Verified assignment effective date",
+                            "Assignment effective date",
                             "date",
                           )}
                           {field("dutyTitle", "Duty title")}
@@ -475,8 +495,8 @@ export function OfficerForm() {
                           type="checkbox"
                           {...register("assignmentVerified")}
                         />
-                        I have verified this assignment effective date against
-                        an authoritative source.
+                        I confirm this assignment effective date against an
+                        authoritative source.
                       </label>
                     )}
                   </>
@@ -547,7 +567,7 @@ export function OfficerForm() {
             <hr />
             <p>
               Unknown history belongs in staging. Do not substitute a letter
-              date or today’s date for an unverified effective date.
+              date or today’s date for an unknown effective date.
             </p>
             <hr />
             <p>

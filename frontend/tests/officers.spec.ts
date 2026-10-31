@@ -7,7 +7,8 @@ import { randomUUID } from "node:crypto";
 import argon2 from "argon2";
 import { createDatabase } from "../../backend/src/config/database";
 import { permissions } from "../../backend/src/config/permissions";
-import { verifyOfficerImport } from "../../backend/src/services/verify-officer-import";
+import { openSource } from "../../backend/src/services/workbook-source";
+import { personnelCell } from "../../backend/src/services/complete-personnel-import";
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
   throw Error("Dedicated test database required");
@@ -64,6 +65,13 @@ test.afterAll(async () => {
     select: { id: true },
   });
   const ids = records.map((o) => o.id);
+  await db.officerPersonnelData.deleteMany({
+    where: { officerId: { in: ids } },
+  });
+  if (sourceBatchId)
+    await db.personnelSummaryRecord.deleteMany({
+      where: { batchId: sourceBatchId },
+    });
   await db.officerRankSnapshot.deleteMany({
     where: { officerId: { in: ids } },
   });
@@ -128,6 +136,9 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await page
     .getByLabel("Full name", { exact: false })
     .fill("Fictional Browser Officer");
+  await page
+    .getByLabel("Assigned duties", { exact: true })
+    .fill("Fictional original duty");
   await page.getByLabel("Payroll number", { exact: true }).fill("00001234");
   await page.getByLabel("Phone number", { exact: true }).fill("000-TEST-PHONE");
   await page
@@ -264,8 +275,53 @@ test("register, edit, search, archive and restore a fictional officer on desktop
       },
     });
   }
+  const previousKey = process.env.WORKBOOK_IMPORT_KEY_PATH;
+  process.env.WORKBOOK_IMPORT_KEY_PATH = ".local/browser-source.key";
+  try {
+    const staged = await db.importRow.findMany({
+      where: { batchId: sourceBatchId },
+    });
+    for (const row of staged) {
+      const raw = await openSource(
+        row.rawData,
+        `${tag}:${row.sheetName}:${row.rowNumber}`,
+      );
+      const cells: Record<string, string> = {};
+      for (const column of Object.keys(raw).filter((k) => /^\d+$/.test(k)))
+        cells[column] = personnelCell(raw, Number(column));
+      if (row.officerId) {
+        const finance = { 36: cells["36"] || "", 37: cells["37"] || "" };
+        delete cells["36"];
+        delete cells["37"];
+        await db.officerPersonnelData.create({
+          data: {
+            officerId: row.officerId,
+            sourceRowId: row.id,
+            details: cells,
+            encryptedFinance: seal(
+              finance,
+              sourceKey,
+              `personnel:${row.officerId}:finance`,
+            ),
+          },
+        });
+      } else
+        await db.personnelSummaryRecord.create({
+          data: {
+            batchId: sourceBatchId,
+            section: row.sheetName,
+            position: row.rowNumber,
+            cells,
+          },
+        });
+    }
+  } finally {
+    if (previousKey === undefined) delete process.env.WORKBOOK_IMPORT_KEY_PATH;
+    else process.env.WORKBOOK_IMPORT_KEY_PATH = previousKey;
+  }
+  await page.reload();
   await page
-    .getByRole("tab", { name: "Workbook details", exact: true })
+    .getByRole("tab", { name: "Personnel details", exact: true })
     .click();
   await expect(
     page.getByText("Fictional Specialist Designation", { exact: true }),
@@ -297,11 +353,14 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   ).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
 
-  await page
-    .getByRole("button", { name: "Mark checked", exact: true })
-    .first()
-    .click();
-  await expect(page.getByText(/Source checked ·/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mark checked", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(
+      /awaiting verification|pending verification|Original workbook/,
+    ),
+  ).toHaveCount(0);
   await page.getByRole("link", { name: "Dashboard", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Dashboard", exact: true }),
@@ -464,31 +523,10 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     page.getByRole("table").getByText("PC", { exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("table").getByText("Imported rank", { exact: true }),
-  ).toBeVisible();
-  const previousKey = process.env.WORKBOOK_IMPORT_KEY_PATH;
-  process.env.WORKBOOK_IMPORT_KEY_PATH = ".local/browser-source.key";
-  try {
-    await db.$transaction(
-      (tx) => verifyOfficerImport(tx, sourceBatchId, userId, true),
-      { timeout: 60000, isolationLevel: "ReadCommitted" },
-    );
-  } finally {
-    if (previousKey === undefined) delete process.env.WORKBOOK_IMPORT_KEY_PATH;
-    else process.env.WORKBOOK_IMPORT_KEY_PATH = previousKey;
-  }
-  await page.reload();
-  await page
-    .getByLabel("Verification filter", { exact: true })
-    .selectOption("VERIFIED");
-  await expect(
     page
       .getByRole("table")
-      .getByText("Verified imported rank", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("table").getByText("Verified", { exact: true }),
-  ).toBeVisible();
+      .getByText(/Verified|awaiting verification|Imported rank/),
+  ).toHaveCount(0);
   const nameCell = page.locator(".officer-name").first();
   expect((await nameCell.boundingBox())!.width).toBeGreaterThan(240);
   expect(
@@ -507,15 +545,15 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     page.getByText("FICTIONAL_BANK_SOURCE", { exact: true }),
   ).toHaveCount(0);
   const rank = await db.rank.findUniqueOrThrow({ where: { code: "CI" } });
-  await page.getByText("Verify initial rank", { exact: true }).click();
+  await page.getByText("Record initial rank", { exact: true }).click();
   await expect(
-    page.getByLabel("Verified rank effective date", { exact: true }),
+    page.getByLabel("Rank effective date", { exact: true }),
   ).toHaveValue("");
   await page
     .getByLabel("Overall rank (Rank 2)", { exact: true })
     .selectOption(rank.id);
   await page
-    .getByLabel("Verified rank effective date", { exact: true })
+    .getByLabel("Rank effective date", { exact: true })
     .fill("2020-01-01");
   await page
     .getByLabel("Original rank spelling (Rank 1)", { exact: true })
@@ -527,16 +565,16 @@ test("register, edit, search, archive and restore a fictional officer on desktop
     )
     .click();
   await page
-    .getByRole("button", { name: "Save verified initial rank", exact: true })
+    .getByRole("button", { name: "Save initial rank", exact: true })
     .click();
   await expect(
     page.getByText(
-      "Initial rank verified. Further rank changes must use the Changes workflow.",
+      "Initial rank recorded. Further rank changes must use the Changes workflow.",
       { exact: true },
     ),
   ).toBeVisible();
   await expect(
-    page.getByText("Verify initial rank", { exact: true }),
+    page.getByText("Record initial rank", { exact: true }),
   ).toHaveCount(0);
   await page
     .getByRole("tab", { name: "Financial information", exact: true })
@@ -572,6 +610,9 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await expect(page.getByRole("alert")).toContainText("record changed");
   await page.reload();
   await page
+    .getByLabel("Assigned duties", { exact: true })
+    .fill("Fictional edited duty");
+  await page
     .getByLabel("Full name", { exact: false })
     .fill("Fictional Browser Officer Updated");
   await page.getByRole("button", { name: "Save changes" }).click();
@@ -580,6 +621,9 @@ test("register, edit, search, archive and restore a fictional officer on desktop
       name: "Fictional Browser Officer Updated",
       exact: true,
     }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Fictional edited duty", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Archive", exact: true }).click();
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
@@ -593,7 +637,7 @@ test("register, edit, search, archive and restore a fictional officer on desktop
   await page.getByRole("textbox", { name: "Search officers" }).fill(tag);
   await expect(
     page.getByRole("table").getByText("Verified current rank", { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: /Fictional Browser Officer Updated/ }),
   ).toBeVisible();

@@ -17,7 +17,7 @@ import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import { Confirm, Empty, ErrorNotice, Loading } from "../components/shared";
 const sourceColumns: Record<string, number[]> = {
-  overview: [2, 3, 6, 7, 8, 9, 10, 11, 24, 27, 32],
+  overview: [7, 10, 32, 16],
   service: [11, 13, 22, 23, 31, 33, 34, 38],
   assignments: [13, 14, 16, 17, 19, 20, 35],
   ranks: [4, 5, 15, 30],
@@ -31,7 +31,7 @@ const sourceColumns: Record<string, number[]> = {
   finance: [36, 37],
 };
 const sections = [
-  { key: "workbook", label: "Workbook details", permission: "import_source" },
+  { key: "details", label: "Personnel details" },
   { key: "overview", label: "Overview" },
   {
     key: "service",
@@ -94,7 +94,6 @@ const labels: Record<string, string> = {
   approvalStatus: "Approval",
   reason: "Reason",
   startDate: "Started",
-  datesVerifiedAt: "Dates verified",
   isPrimary: "Primary assignment",
 };
 function History({ id, section }: { id: string; section: string }) {
@@ -122,7 +121,7 @@ function History({ id, section }: { id: string; section: string }) {
       {rows.length === 0 ? (
         <Empty
           title="No entries recorded"
-          description="Verified entries will appear here when they are recorded."
+          description="Entries will appear here when they are recorded."
         />
       ) : (
         <div className="history-list">
@@ -179,7 +178,7 @@ function History({ id, section }: { id: string; section: string }) {
             id={id}
             saved={() =>
               setNotice(
-                "Initial rank verified. Further rank changes must use the Changes workflow.",
+                "Initial rank recorded. Further rank changes must use the Changes workflow.",
               )
             }
           />
@@ -286,23 +285,10 @@ export function Profile() {
               <Hash size={14} />
               {o.forceNumber}
             </span>
-            <span
-              className={`badge ${o.deletedAt ? "neutral" : o.verificationStatus === "VERIFIED" ? "verified" : "amber"}`}
-            >
-              {o.deletedAt
-                ? "Archived"
-                : o.recordStatus === "UNVERIFIED"
-                  ? o.verificationStatus === "VERIFIED"
-                    ? "Verified"
-                    : "Needs verification"
-                  : o.recordStatus}
-            </span>
-            {(o.deletedAt || o.recordStatus !== "UNVERIFIED") &&
-              o.verificationStatus === "VERIFIED" && (
-                <span className="badge verified">Verified</span>
-              )}
-            {o.verifiedAt && (
-              <span>Data verified {dateLabel(o.verifiedAt)}</span>
+            {(o.deletedAt || o.recordStatus !== "UNVERIFIED") && (
+              <span className="badge neutral">
+                {o.deletedAt ? "Archived" : o.recordStatus}
+              </span>
             )}
           </div>
         </div>
@@ -395,7 +381,7 @@ export function Profile() {
             <h2>{tabs.find((t) => t.key === tab)?.label}</h2>
             <ShieldCheck size={17} />
           </div>
-          {tab === "workbook" ? (
+          {tab === "details" ? (
             <WorkbookDetails id={id!} />
           ) : tab === "overview" ? (
             <>
@@ -446,32 +432,28 @@ export function Profile() {
                   </p>
                 </div>
               </div>
-              {can("fields.import_source.view") && (
+              {
                 <div style={{ marginTop: 24 }}>
-                  <h3>Original workbook details</h3>
+                  <h3>Additional details</h3>
                   <WorkbookDetails id={id!} columns={sourceColumns.overview} />
                 </div>
-              )}
+              }
             </>
           ) : (
             <>
               {tab !== "finance" && (
                 <History key={tab} id={id!} section={tab} />
               )}
-              {can("fields.import_source.view") && (
+              {
                 <div style={{ marginTop: 24 }}>
-                  <h3>
-                    {o.verificationStatus === "VERIFIED"
-                      ? "Original workbook information"
-                      : "Workbook information — pending verification"}
-                  </h3>
+                  <h3>Additional details</h3>
                   <WorkbookDetails
                     key={tab}
                     id={id!}
                     columns={sourceColumns[tab]}
                   />
                 </div>
-              )}
+              }
             </>
           )}
         </section>

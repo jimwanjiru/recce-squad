@@ -236,7 +236,7 @@ test("record, edit, delete and independently approve officer changes without mix
     page.getByRole("heading", { name: "Changes in " + past, exact: true }),
   ).toBeVisible();
   let table = page.getByRole("table", {
-    name: "Changes workbook table",
+    name: "Personnel changes table",
     exact: true,
   });
   await expect(
@@ -416,12 +416,9 @@ test("record, edit, delete and independently approve officer changes without mix
     ),
   ).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("tab", { name: "Workbook source", exact: true }).click();
-  await expect(table.getByRole("columnheader")).toHaveCount(40);
   await expect(
-    table.getByText("FICTIONAL_LEGACY_LAST_COLUMN", { exact: true }),
-  ).toBeAttached();
-  await page.getByRole("tab", { name: "Yearly register", exact: true }).click();
+    page.getByRole("tab", { name: "Workbook source", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByLabel("Change effective year", { exact: true })
     .selectOption(String(past - 1));

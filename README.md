@@ -1,5 +1,7 @@
 # RECCE Officers Personnel Management System
 
+Already imported your officers? Follow the [Windows personnel database update](documentation/personnel-database-update.md) to complete the existing batch, retain manual edits, and enable editable Assigned duties without reconfiguration.
+
 Run directly on your laptop with **Node.js 24 and MySQL 8.4 (or MariaDB 10.11)**, without Docker:
 
 ```bash
@@ -20,8 +22,7 @@ Keep that terminal open. In a second terminal in the same folder, run `npm run l
 
 The compiled frontend and backend share one Node.js server. Python, Bash, Docker and a separate frontend development server are not required. The [Docker installation](documentation/local-installation.md) remains optional.
 
-
-Phase 4 organizational management builds on the React officer interface and secure Express/Prisma/MySQL backend. Manage ranks, rank spellings, unit hierarchies, sub-units, verified assignment baselines, deployments and externally approved staffing establishments. A [local workbook importer](documentation/workbook-import.md) now creates core officer records with encrypted source staging. The CHANGES register now supports dated, independently approved personnel events. Automatic scheduling, retrospective timeline reconciliation, supporting-document uploads and workbook export remain pending. Officer profiles include permission-filtered workbook details and a source-review checklist; the local importer also provides a guarded rollback command. The dashboard has interactive analytics, and Organization includes paginated group rosters with officer ranks.
+Phase 4 organizational management builds on the React officer interface and secure Express/Prisma/MySQL backend. Manage ranks, rank spellings, unit hierarchies, sub-units, verified assignment baselines, deployments and externally approved staffing establishments. A [local workbook importer](documentation/workbook-import.md) now creates core officer records with encrypted source staging. The CHANGES register now supports dated, independently approved personnel events. Automatic scheduling, retrospective timeline reconciliation, supporting-document uploads and workbook export remain pending. Officer profiles show permission-filtered personnel details and editable assigned duties; the local importer also provides a guarded rollback command. The dashboard has interactive analytics, and Organization includes paginated group rosters with officer ranks.
 
 - [CHANGES register, yearly CRUD and independent approval](documentation/changes.md)
 - [Officer dashboard and workbook count definitions](documentation/dashboard.md)

@@ -176,8 +176,7 @@ export function Changes() {
           <p className="eyebrow">PERSONNEL EVENTS</p>
           <h1>Changes</h1>
           <p className="muted">
-            Officer-linked events, grouped by effective year. COY is shown as
-            Sub-unit.
+            Officer-linked events, grouped by effective year and sub-unit.
           </p>
         </div>
         <div className="changes-header-actions">
@@ -244,16 +243,6 @@ export function Changes() {
         >
           Yearly register
         </button>
-        <button
-          role="tab"
-          aria-selected={view === "source"}
-          onClick={() => {
-            setView("source");
-            setPage(1);
-          }}
-        >
-          Workbook source
-        </button>
       </div>
       <div className="notice" role="note">
         An officer must already exist. Drafts can be edited and deleted;
@@ -275,9 +264,7 @@ export function Changes() {
               {years.map((y) => (
                 <option key={y}>{y}</option>
               ))}
-              <option value="undated">
-                Undated / awaiting date verification
-              </option>
+              <option value="undated">Undated</option>
             </select>
           </label>
           <label>
@@ -339,7 +326,7 @@ export function Changes() {
         <div className="panel-title">
           <h2>
             {view === "source"
-              ? "Original workbook CHANGES"
+              ? "Retained personnel events"
               : year === "undated"
                 ? "Undated review queue"
                 : "Changes in " + year}
@@ -348,7 +335,7 @@ export function Changes() {
         </div>
         <p className="changes-table-note">
           {view === "source"
-            ? "Original workbook columns are retained here for provenance."
+            ? "Recorded personnel details."
             : "Transfers out uses the agreed 13 columns. Reference dates remain separate from the effective year."}
         </p>
         {list.isPending ? (
@@ -360,7 +347,7 @@ export function Changes() {
             <div className="table-scroll">
               <table
                 className="changes-table"
-                aria-label="Changes workbook table"
+                aria-label="Personnel changes table"
               >
                 <thead>
                   <tr>
@@ -613,9 +600,9 @@ export function Changes() {
         }
         description={
           confirm?.action === "approve"
-            ? "I have verified the effective date and intended officer, status, rank and sub-unit. This applies the dated change atomically; the original officer record and history are retained."
+            ? "I confirm the effective date and intended officer, status, rank and sub-unit. This applies the dated change atomically; the original officer record and history are retained."
             : confirm?.action === "delete"
-              ? "Only this unapplied draft will be deleted. Its source workbook and audit trail remain."
+              ? "Only this unapplied draft will be deleted. Its protected provenance and audit trail remain."
               : "Applied records cannot be edited or deleted. Letter dates are separate from effective dates."
         }
         onConfirm={() => confirm && action.mutate(confirm)}
@@ -709,10 +696,7 @@ function ChangeDetails({
           </div>
           <div>
             <dt>Effective year</dt>
-            <dd>
-              {row.effectiveDate?.slice(0, 4) ||
-                "Undated — awaiting date verification"}
-            </dd>
+            <dd>{row.effectiveDate?.slice(0, 4) || "Undated"}</dd>
           </div>
           {row.targetUnitId && (
             <div>
@@ -771,14 +755,6 @@ function ChangeDetails({
                   {current.recordStatus === "UNVERIFIED"
                     ? "Not confirmed"
                     : current.recordStatus.replaceAll("_", " ")}
-                </dd>
-              </div>
-              <div>
-                <dt>Officer data verification</dt>
-                <dd>
-                  {current.verificationStatus === "VERIFIED"
-                    ? "Verified"
-                    : "Awaiting verification"}
                 </dd>
               </div>
               <div>
@@ -1034,7 +1010,7 @@ function ChangeForm({
                     setSub("");
                   }}
                 >
-                  <option value="">Choose a verified reference unit</option>
+                  <option value="">Choose a reference unit</option>
                   {options.units.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.code} · {u.name}
@@ -1164,9 +1140,9 @@ function ApproverForm({ close }: { close: () => void }) {
       >
         <h2>Set up independent approver</h2>
         <p>
-          This account can read all CHANGES source columns and approve personnel
-          events, but receives no account/role administration permission. It
-          must sign in separately; creators cannot approve their own changes.
+          This account can read change details and approve personnel events, but
+          receives no account/role administration permission. It must sign in
+          separately; creators cannot approve their own changes.
         </p>
         {create.error && <ErrorNotice error={create.error} />}{" "}
         {create.isSuccess ? (

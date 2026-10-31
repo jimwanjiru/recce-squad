@@ -85,13 +85,13 @@ export function message(error: unknown) {
       INACTIVE_PARENT_UNIT: "Reactivate the parent unit first.",
       INVALID_CREDENTIALS: "The email or password is incorrect.",
       WORKBOOK_SOURCE_KEY_UNAVAILABLE_OR_INVALID:
-        "The workbook source cannot be opened. Restore the matching .local/workbook-import.key from your protected backup.",
+        "Protected personnel details cannot be opened. Restore the matching local encryption key from your protected backup.",
       SOURCE_SERIAL_NOT_PERSONNEL_FIELD:
-        "Excel S/NO is a spreadsheet row label, not an officer field to verify.",
+        "Row numbering is not an officer attribute.",
       APPROVER_EMAIL_EXISTS:
         "That email is already registered. Use the existing account or choose another approver email.",
       CHANGE_SOURCE_ALREADY_LINKED:
-        "This workbook row already has a change record. Refresh the source view to see its status.",
+        "This retained record already has a change event. Refresh the register to see its status.",
       CHANGE_REVISION_CONFLICT:
         "This change was updated or is no longer editable. Refresh the register.",
       CHANGE_SELF_APPROVAL_FORBIDDEN:
@@ -142,6 +142,7 @@ export type Officer = {
   forceNumber: string;
   fullName: string;
   recordStatus: string;
+  assignedDuties?: string | null;
   verificationStatus?: "UNVERIFIED" | "VERIFIED";
   verifiedAt?: string | null;
   version: number;

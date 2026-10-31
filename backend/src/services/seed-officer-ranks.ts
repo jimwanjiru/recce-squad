@@ -46,10 +46,6 @@ export async function seedOfficerRanks(
       counts.held++;
       continue;
     }
-    if (sourceText(raw["6"]).trim() !== row.officer.fullName.trim()) {
-      counts.held++;
-      continue;
-    }
     const rankCode = overallRank(raw["5"]);
     if (rankCode === "UNKNOWN") counts.unmapped++;
     await tx.officerRankSnapshot.create({

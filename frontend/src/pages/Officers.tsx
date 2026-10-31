@@ -250,13 +250,11 @@ export function Officers() {
             <option value="createdAt">Date added</option>
           </select>
           <select
-            aria-label="Verification filter"
+            aria-label="Service status filter"
             value={params.get("recordStatus") ?? ""}
             onChange={(e) => setFilter("recordStatus", e.target.value)}
           >
             <option value="">All record states</option>
-            <option value="UNVERIFIED">Needs verification</option>
-            <option value="VERIFIED">Verified</option>
             {[
               "ACTIVE",
               "SUSPENDED",
@@ -304,20 +302,6 @@ export function Officers() {
             </select>
           )}
         </div>
-        {can("fields.rank_history.view") && (
-          <details className="rank-verification-guide">
-            <summary>
-              What does “Workbook · awaiting verification” mean?
-            </summary>
-            <p>
-              This rank is taken from the workbook. Open Review rank to record
-              the first verified rank with its actual effective date and any
-              available document reference. Checking a workbook field records a
-              source review; it does not create verified rank history or verify
-              the officer’s service status.
-            </p>
-          </details>
-        )}
         {selected.length > 0 && (
           <div className="selection-bar">
             <span>{selected.length} selected</span>
@@ -478,46 +462,17 @@ export function Officers() {
                               ? "Not recorded / unmapped"
                               : o.rank2 || "—"}
                           </strong>
-                          <small className="roster-source-label">
-                            {o.rankSource === "WORKBOOK"
-                              ? "Workbook · awaiting verification"
-                              : o.rankSource === "VERIFIED"
-                                ? "Verified current rank"
-                                : o.rankSource === "VERIFIED_IMPORT"
-                                  ? "Verified imported rank"
-                                  : o.rankSource === "DATABASE"
-                                    ? "Imported rank"
-                                    : ""}
-                          </small>
-                          {o.rankSource === "WORKBOOK" && (
-                            <Link
-                              className="rank-review-link"
-                              to={"/officers/" + o.id + "?tab=ranks"}
-                            >
-                              Review rank
-                            </Link>
-                          )}
                         </td>
                       </>
                     )}
                     <td>
-                      <span
-                        className={`badge ${o.deletedAt ? "neutral" : o.verificationStatus === "VERIFIED" ? "verified" : "amber"}`}
-                      >
+                      <span className="badge neutral">
                         {o.deletedAt
                           ? "Archived"
                           : o.recordStatus === "UNVERIFIED"
-                            ? o.verificationStatus === "VERIFIED"
-                              ? "Verified"
-                              : "Needs verification"
+                            ? "Registered"
                             : o.recordStatus}
                       </span>
-                      {(o.deletedAt || o.recordStatus !== "UNVERIFIED") &&
-                        o.verificationStatus === "VERIFIED" && (
-                          <span className="badge verified officer-verification-badge">
-                            Verified
-                          </span>
-                        )}
                     </td>
                     {columns.includes("payrollNumber") &&
                       can("fields.payroll_number.view") && (

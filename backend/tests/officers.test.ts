@@ -7,6 +7,7 @@ import { randomUUID, randomBytes } from "node:crypto";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { seedOfficerRanks } from "../src/services/seed-officer-ranks.js";
 import { seal } from "../../tools/workbook-import-data.cjs";
 import { createDatabase } from "../src/config/database.js";
 import { createApp } from "../src/app.js";
@@ -105,6 +106,9 @@ after(async () => {
     select: { id: true },
   });
   const ids = officers.map((o) => o.id);
+  await db.officerRankSnapshot.deleteMany({
+    where: { sourceRow: { batchId: rankBatchId || "none" } },
+  });
   if (rankBatchId) {
     await db.importRow.deleteMany({ where: { batchId: rankBatchId } });
     await db.importBatch.delete({ where: { id: rankBatchId } });
@@ -412,6 +416,7 @@ test("NAMES ranks preserve specifications, group CPL separately from CP, paginat
         },
       });
     }
+    await db.$transaction((tx) => seedOfficerRanks(tx, rankBatchId!, adminId));
     const query = `/api/officers?q=${encodeURIComponent(sha)}&sort=rank`;
     const sorted = (await admin.get(query).expect(200)).body;
     assert.deepEqual(
