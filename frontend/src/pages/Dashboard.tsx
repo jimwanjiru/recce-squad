@@ -1,3 +1,8 @@
+import {
+  dashboardNumber as number,
+  dashboardGap as gap,
+  isDashboardNumber,
+} from "../lib/dashboard-numbers";
 import { PersonnelSummaries } from "../components/PersonnelSummaries";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -43,7 +48,6 @@ type Summary = {
   } | null;
   generatedAt: string;
 };
-const number = (n: number) => n.toLocaleString("en-GB");
 function Analytics({ data }: { data: Summary }) {
   const [selected, setSelected] = useState("ALL");
   const [rankGroup, setRankGroup] = useState("ALL");
@@ -276,21 +280,14 @@ export function Dashboard() {
   );
   const completeEstablishment = d.rankBreakdown
     .filter((rank) => rank.code !== "UNKNOWN")
-    .every((rank) => rank.workbookEstablishment !== null);
+    .every((rank) => isDashboardNumber(rank.workbookEstablishment));
   const establishmentTotal = completeEstablishment
     ? d.rankBreakdown.reduce(
         (sum, rank) => sum + (rank.workbookEstablishment || 0),
         0,
       )
     : null;
-  const show = (value: number | null) =>
-    value === null ? "Unavailable" : number(value);
-  const gap = (value: number | null) =>
-    value === null
-      ? "Unavailable"
-      : value === 0
-        ? "0"
-        : (value > 0 ? "+" : "") + number(value);
+  const show = number;
   return (
     <div className="dashboard">
       <div className="dashboard-heading analytics-hero">
@@ -449,7 +446,7 @@ export function Dashboard() {
                         <th scope="row">{group.label}</th>
                         {ranks.map((rank) => (
                           <td key={rank.code}>
-                            {number(group.ranks[rank.code] || 0)}
+                            {number(group.ranks?.[rank.code])}
                           </td>
                         ))}
                         <td>{number(group.count)}</td>
@@ -596,14 +593,14 @@ export function Dashboard() {
                         <td>{group.label}</td>
                         <td>{number(group.count)}</td>
                         <td>
-                          {group.workbookCached === null
+                          {!isDashboardNumber(group.workbookCached)
                             ? "Unavailable"
                             : number(group.workbookCached)}
                         </td>
                         <td>
                           {!group.inStrengthSheet
                             ? "Not listed in comparison"
-                            : group.workbookCached === null
+                            : !isDashboardNumber(group.workbookCached)
                               ? "Historical total unavailable"
                               : group.workbookCached === group.count
                                 ? "Matches historical comparison"
